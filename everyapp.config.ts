@@ -11,8 +11,8 @@
  *   pnpm dev               # everyapp dev: D1, behind a gateway-lite
  */
 export default {
-  id: "crm",
-  name: "OpenCRM",
+  id: "crmlab",
+  name: "OpenCRM Lab",
   description:
     "Companies, contacts and deals, with mail, meetings and website visits filed on them.",
   icon: "/everyapp-icon.svg",
