@@ -8,15 +8,27 @@ import {
   lt,
   notExists,
   or,
+  sql,
 } from "drizzle-orm";
 import { db } from "@/db";
 import { runBatch } from "@/db/runBatch";
-import { activity, company, deal, user } from "@/db/schema";
+import {
+  activity,
+  company,
+  deal,
+  pipeline,
+  pipelineStage,
+  user,
+} from "@/db/schema";
 import { idChunks } from "@/server/features/records/recordRules";
 import { fieldValueWrites } from "@/server/features/fields/repositories/FieldValueRepository";
 import type { FieldWrite } from "@/server/features/fields/repositories/FieldValueRepository";
 import type { DealStage } from "@/shared/crm-enums";
-import { isClosedStage } from "@/shared/deal-stages";
+import {
+  isClosedStage,
+  isLosingStage,
+  OPEN_DEAL_STAGES,
+} from "@/shared/deal-stages";
 
 // Deals: the pipeline's rows. A deal belongs to one company of its
 // organization and is owned by one member. Its stage moves only through
@@ -41,6 +53,22 @@ export const dealOwnerColumns = {
   image: user.image,
 };
 
+/** The names of the deal's pipeline and its stage there, when it is in one. */
+export const dealPipelineColumns = {
+  pipeline: pipeline.name,
+  pipelineStage: pipelineStage.name,
+};
+
+export const ofItsPipeline = and(
+  eq(pipeline.id, deal.pipelineId),
+  eq(pipeline.organizationId, deal.organizationId),
+);
+
+export const ofItsPipelineStage = and(
+  eq(pipelineStage.id, deal.pipelineStageId),
+  eq(pipelineStage.organizationId, deal.organizationId),
+);
+
 // The deal's company is always its organization's; the join says so too.
 export const ofItsCompany = and(
   eq(company.id, deal.companyId),
@@ -51,6 +79,22 @@ function inOrganization(organizationId: string, id: string) {
   return and(eq(deal.organizationId, organizationId), eq(deal.id, id));
 }
 
+/**
+ * The stage of the deal's own pipeline a move to `to` lands on: its first
+ * won or lost stage, or the open one at the built-in stage's place. Null
+ * for a deal in no pipeline, or a pipeline without such a stage.
+ */
+function pipelineStageFor(to: DealStage) {
+  const kind =
+    to === "CLOSED_WON" ? "DONE" : isLosingStage(to) ? "DROPPED" : "OPEN";
+  const place = kind === "OPEN" ? Math.max(OPEN_DEAL_STAGES.indexOf(to), 0) : 0;
+  // Spelled out: inside an UPDATE of deal, a bare pipeline_id would bind to
+  // pipeline_stage's own column.
+  return sql<
+    string | null
+  >`(select "ps"."id" from "pipeline_stage" "ps" where "ps"."pipeline_id" = "deal"."pipeline_id" and "ps"."kind" = ${kind} order by "ps"."position" limit 1 offset ${place})`;
+}
+
 /** One deal of the organization, with its company and owner. */
 async function findById(organizationId: string, id: string) {
   const [row] = await db
@@ -58,14 +102,23 @@ async function findById(organizationId: string, id: string) {
       deal,
       company: { ...dealCompanyColumns, industry: company.industry },
       owner: dealOwnerColumns,
+      ...dealPipelineColumns,
     })
     .from(deal)
     .innerJoin(company, ofItsCompany)
     .innerJoin(user, eq(user.id, deal.ownerId))
+    .leftJoin(pipeline, ofItsPipeline)
+    .leftJoin(pipelineStage, ofItsPipelineStage)
     .where(inOrganization(organizationId, id))
     .limit(1);
   if (!row) return null;
-  return { ...row.deal, company: row.company, owner: row.owner };
+  return {
+    ...row.deal,
+    company: row.company,
+    owner: row.owner,
+    pipeline: row.pipeline,
+    pipelineStage: row.pipelineStage,
+  };
 }
 
 /**
@@ -152,6 +205,7 @@ async function moveStage(
         .update(deal)
         .set({
           stage: move.to,
+          pipelineStageId: pipelineStageFor(move.to),
           stageChangedAt: at,
           closedAt: closed ? at : null,
           closedReason: closed ? move.reason : null,

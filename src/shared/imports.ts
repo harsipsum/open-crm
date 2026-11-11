@@ -15,6 +15,14 @@ type ImportTarget = {
   hint?: string;
 };
 
+/** When the record was created in the CRM it came from (HubSpot "Create Date"). */
+const CREATED_AT: ImportTarget = {
+  id: "createdAt",
+  label: "Create date",
+  aliases: ["created date", "created at", "date created", "created on"],
+  hint: "A day or time, like 2025-03-31 or 2025-03-31 14:05",
+};
+
 const OWNER: ImportTarget = {
   id: "owner",
   label: "Owner",
@@ -38,6 +46,7 @@ export const IMPORT_TARGETS = {
         "url",
         "web site",
         "company domain",
+        "company domain name",
         "company website",
       ],
       hint: "acme.com, or the website",
@@ -52,12 +61,13 @@ export const IMPORT_TARGETS = {
       label: "State",
       aliases: ["state", "region", "province"],
     },
-    { id: "country", label: "Country", aliases: [] },
+    { id: "country", label: "Country", aliases: ["country/region"] },
     {
       id: "linkedinUrl",
       label: "LinkedIn",
       aliases: ["linkedin url", "company linkedin"],
     },
+    CREATED_AT,
     OWNER,
   ],
   CONTACT: [
@@ -99,6 +109,7 @@ export const IMPORT_TARGETS = {
       aliases: ["company name", "account", "organization", "company domain"],
       hint: "A company's name or domain",
     },
+    CREATED_AT,
     OWNER,
   ],
   DEAL: [
@@ -111,7 +122,13 @@ export const IMPORT_TARGETS = {
     {
       id: "company",
       label: "Company",
-      aliases: ["company name", "account", "account name", "company domain"],
+      aliases: [
+        "company name",
+        "account",
+        "account name",
+        "company domain",
+        "associated company",
+      ],
       required: true,
       hint: "A company's name or domain",
     },
@@ -119,19 +136,36 @@ export const IMPORT_TARGETS = {
       id: "stage",
       label: "Stage",
       aliases: ["deal stage", "pipeline stage", "status"],
+      hint: "With a pipeline, any of its stages: a new one is added",
+    },
+    {
+      id: "pipeline",
+      label: "Pipeline",
+      aliases: ["deal pipeline"],
+      hint: "A pipeline's name: a new one is added with its stages",
     },
     {
       id: "amount",
       label: "Amount",
       aliases: ["value", "deal value", "deal amount"],
     },
-    { id: "currency", label: "Currency", aliases: ["currency code"] },
+    {
+      id: "currency",
+      label: "Currency",
+      aliases: ["currency code", "deal currency code", "deal currency"],
+    },
     {
       id: "closeDate",
       label: "Close date",
       aliases: ["expected close date", "expected close", "closing date"],
-      hint: "A day, like 2027-03-31",
+      hint: "A day, like 2027-03-31. A won or lost deal closed on it.",
     },
+    {
+      id: "lostReason",
+      label: "Lost reason",
+      aliases: ["closed lost reason", "close reason", "loss reason"],
+    },
+    CREATED_AT,
     { ...OWNER, aliases: [...OWNER.aliases, "deal owner"] },
     { id: "description", label: "Description", aliases: ["notes"] },
   ],
@@ -151,8 +185,12 @@ export type ImportDuplicates = (typeof IMPORT_DUPLICATES)[number];
  */
 export const IMPORT_CHUNK_SIZE = 50;
 
-/** The most rows one import takes. */
-export const IMPORT_MAX_ROWS = 10_000;
+/**
+ * The most rows one import takes. The dialog sends them IMPORT_CHUNK_SIZE at
+ * a time, so the cap only bounds what a browser tab parses and holds: a
+ * HubSpot export of tens of thousands of contacts goes in as one file.
+ */
+export const IMPORT_MAX_ROWS = 100_000;
 
 /** What happened to one row. */
 export type ImportOutcome = "created" | "updated" | "skipped" | "failed";

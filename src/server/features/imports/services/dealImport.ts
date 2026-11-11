@@ -1,5 +1,10 @@
 import { ConversionService } from "@/server/features/currency/services/ConversionService";
 import { DealRepository } from "@/server/features/deals/repositories/DealRepository";
+import {
+  PipelineRepository,
+  stageKindOf,
+  type PipelineStageRef,
+} from "@/server/features/deals/repositories/PipelineRepository";
 import { DealService } from "@/server/features/deals/services/DealService";
 import { FieldValueRepository } from "@/server/features/fields/repositories/FieldValueRepository";
 import { DEAL_STAGES, type DealStage } from "@/shared/crm-enums";
@@ -15,6 +20,7 @@ import {
   cell,
   companyRefOf,
   companyResolver,
+  createdAtOf,
   customValues,
   memberOf,
   parseRows,
@@ -31,6 +37,16 @@ import {
 // doesn't have it yet; its owner is the member its owner cell names, or the
 // person importing. Its amount is in its currency, or the workspace's
 // reporting currency, converted as a deal saved by hand is.
+//
+// History comes through: a won or lost deal closed on its close date (a
+// HubSpot export's "Close Date"), with its lost reason when the file has
+// one, and was created on its create date, so reports count it in the month
+// it really closed. An open deal's close date is when it is expected to.
+//
+// A "Pipeline" column puts each deal in that named pipeline (added when the
+// CRM doesn't have it), at its own stage: any stage name, added to the
+// pipeline the first time it shows up. A stage named won or renewed is a
+// win, lost, churned or unqualified a loss, anything else open.
 
 const IMPORT_REASON = "Set by a CSV import";
 
@@ -54,6 +70,42 @@ function stageOf(raw: string | null): DealStage | null {
     );
   }
   return stage;
+}
+
+const PIPELINE_NAME_MAX = 120;
+
+/**
+ * Resolves a row's pipeline and stage by name, adding what's missing, once
+ * per name in a chunk.
+ */
+function pipelineResolver(organizationId: string) {
+  const pipelines = new Map<string, Promise<string>>();
+  const stages = new Map<string, Promise<PipelineStageRef>>();
+  return (pipelineName: string, stageName: string) => {
+    const pipelineKey = pipelineName.toLowerCase();
+    let pipelineId = pipelines.get(pipelineKey);
+    if (!pipelineId) {
+      pipelineId = PipelineRepository.ensurePipeline(
+        organizationId,
+        pipelineName,
+      );
+      pipelines.set(pipelineKey, pipelineId);
+    }
+    const stageKey = `${pipelineKey}|${stageName.toLowerCase()}`;
+    let ref = stages.get(stageKey);
+    if (!ref) {
+      ref = pipelineId.then((id) =>
+        PipelineRepository.ensureStage(
+          organizationId,
+          id,
+          stageName,
+          stageKindOf(stageName),
+        ),
+      );
+      stages.set(stageKey, ref);
+    }
+    return ref;
+  };
 }
 
 /** "$12,500.00" → 12500; a symbol or code around the number is dropped. */
@@ -98,15 +150,33 @@ function parseDeal(run: ImportRun, values: Record<string, string>) {
       `"${rawCurrency}" is not a currency the CRM keeps. Use one of: ${CURRENCY_CODES.join(", ")}.`,
     );
   }
+  const pipeline = textCell(
+    values,
+    "pipeline",
+    "The pipeline",
+    PIPELINE_NAME_MAX,
+  );
+  const pipelineStage = pipeline
+    ? (textCell(values, "stage", "The stage", PIPELINE_NAME_MAX) ?? null)
+    : null;
+  if (pipeline && !pipelineStage) {
+    throw new RowError("A deal in a pipeline needs its stage.");
+  }
   return {
     name,
     company,
-    stage: stageOf(cell(values, "stage")),
+    pipeline:
+      pipeline && pipelineStage
+        ? { name: pipeline, stage: pipelineStage }
+        : null,
+    stage: pipeline ? null : stageOf(cell(values, "stage")),
     amount: amountOf(cell(values, "amount")),
     currency,
     closeDay: closeDayOf(cell(values, "closeDate")),
     ownerId: memberOf(run, cell(values, "owner")),
     description: textCell(values, "description", "The description", 5000),
+    lostReason: textCell(values, "lostReason", "The lost reason", 1000),
+    createdAt: createdAtOf(values),
     writes: customValues(run, values),
   };
 }
@@ -128,6 +198,7 @@ export async function importDeals(
     ),
     ConversionService.reportingCurrency(run.organizationId),
   ]);
+  const pipelineOf = pipelineResolver(run.organizationId);
   // The deal each name at each company already is; null for one a dry run
   // would add.
   const existing = new Map<string, string | null>(
@@ -143,6 +214,11 @@ export async function importDeals(
     const found = row.value;
     results.push(
       await saveRow(row.line, async () => {
+        const placed =
+          found.pipeline && !run.dryRun
+            ? await pipelineOf(found.pipeline.name, found.pipeline.stage)
+            : null;
+        const builtIn = placed?.stage ?? found.stage;
         const companyId = await companyOf(found.company);
         const key = `${companyId ?? `new:${JSON.stringify(found.company)}`}|${found.name.toLowerCase()}`;
         if (existing.has(key)) {
@@ -157,18 +233,21 @@ export async function importDeals(
             ...(found.closeDay ? { expectedCloseDate: found.closeDay } : {}),
             ...(found.ownerId ? { ownerId: found.ownerId } : {}),
           });
-          if (found.stage) {
+          if (builtIn) {
             await DealService.setStage(
               run.organizationId,
               {
                 id,
-                stage: found.stage,
-                closedReason: isLosingStage(found.stage)
-                  ? IMPORT_REASON
+                stage: builtIn,
+                closedReason: isLosingStage(builtIn)
+                  ? (found.lostReason ?? IMPORT_REASON)
                   : undefined,
               },
               run.userId,
             );
+          }
+          if (placed) {
+            await PipelineRepository.place(run.organizationId, id, placed);
           }
           await FieldValueRepository.write(
             run.organizationId,
@@ -182,11 +261,18 @@ export async function importDeals(
           existing.set(key, null);
           return "created";
         }
-        const stage = found.stage ?? "DEMO_BOOKED";
+        const stage = builtIn ?? "DEMO_BOOKED";
         const currency = found.currency ?? reportingCurrency;
         const amount =
           found.amount === null ? null : roundMoney(found.amount, currency);
         const now = new Date().toISOString();
+        const closed = isClosedStage(stage);
+        // A closed deal's close date is the day it closed; no date, today.
+        const closedAt = closed
+          ? found.closeDay
+            ? `${found.closeDay}T00:00:00.000Z`
+            : now
+          : null;
         const inserted = await DealRepository.insert({
           organizationId: run.organizationId,
           name: found.name,
@@ -194,9 +280,14 @@ export async function importDeals(
           companyId,
           ownerId: found.ownerId ?? run.userId,
           stage,
-          stageChangedAt: now,
-          closedAt: isClosedStage(stage) ? now : null,
-          closedReason: isLosingStage(stage) ? IMPORT_REASON : null,
+          pipelineId: placed?.pipelineId ?? null,
+          pipelineStageId: placed?.id ?? null,
+          stageChangedAt: closedAt ?? now,
+          closedAt,
+          closedReason: isLosingStage(stage)
+            ? (found.lostReason ?? IMPORT_REASON)
+            : null,
+          ...(found.createdAt ? { createdAt: found.createdAt } : {}),
           amount,
           currency,
           ...(await ConversionService.dealFields(

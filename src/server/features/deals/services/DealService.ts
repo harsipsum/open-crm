@@ -4,6 +4,7 @@ import { ConversionService } from "@/server/features/currency/services/Conversio
 import { DealContactRepository } from "@/server/features/deals/repositories/DealContactRepository";
 import { DealListRepository } from "@/server/features/deals/repositories/DealListRepository";
 import { DealRepository } from "@/server/features/deals/repositories/DealRepository";
+import { PipelineRepository } from "@/server/features/deals/repositories/PipelineRepository";
 import { FieldValuesService } from "@/server/features/fields/services/FieldValuesService";
 import {
   assertOwner,
@@ -115,6 +116,31 @@ async function getDeal(organizationId: string, id: string) {
 }
 
 export type DealDetail = Awaited<ReturnType<typeof getDeal>>;
+
+/** The named pipelines with their stages and what sits at each. */
+function listPipelines(organizationId: string) {
+  return PipelineRepository.summary(organizationId);
+}
+
+/**
+ * Puts a pipeline's stages in this order (adding the pipeline or a stage
+ * when missing); its open deals then count as the built-in open stage at
+ * their stage's new place. Returns that pipeline as list_pipelines shows it.
+ */
+async function orderPipelineStages(
+  organizationId: string,
+  input: { pipeline: string; stages: string[] },
+) {
+  const id = await PipelineRepository.orderStages(
+    organizationId,
+    input.pipeline,
+    input.stages,
+  );
+  const pipelines = await PipelineRepository.summary(organizationId);
+  const found = pipelines.find((row) => row.id === id);
+  if (!found) throw new Error("Pipeline missing after ordering its stages");
+  return found;
+}
 
 async function createDeal(organizationId: string, input: CreateDealInput) {
   await requireCompany(organizationId, input.companyId);
@@ -411,6 +437,8 @@ function bulkPurge(organizationId: string, ids: string[]) {
 export const DealService = {
   listDeals,
   getDeal,
+  listPipelines,
+  orderPipelineStages,
   createDeal,
   updateDeal,
   setStage,
