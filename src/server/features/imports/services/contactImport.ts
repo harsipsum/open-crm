@@ -13,6 +13,7 @@ import {
   cell,
   companyRefOf,
   companyResolver,
+  createdAtOf,
   customValues,
   memberOf,
   parseRows,
@@ -71,6 +72,7 @@ function parseContact(run: ImportRun, values: Record<string, string>) {
     title: textCell(values, "title", "The job title", CONTACT_TITLE_MAX),
     linkedinUrl: textCell(values, "linkedinUrl", "LinkedIn", 2048),
     company: companyRefOf(cell(values, "company"), email),
+    createdAt: createdAtOf(values),
     ownerId: memberOf(run, cell(values, "owner")),
     writes: customValues(run, values),
   };
@@ -169,6 +171,7 @@ export async function importContacts(
             companyId,
             ownerId: person.ownerId,
             source: "IMPORT",
+            ...(person.createdAt ? { createdAt: person.createdAt } : {}),
           });
         } catch (error) {
           // Another request added the email first: it's a duplicate.

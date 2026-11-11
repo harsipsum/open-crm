@@ -152,6 +152,42 @@ export function textCell(
   return value;
 }
 
+/**
+ * When the record was first made, from a day (2025-03-31) or a time
+ * (2025-03-31 14:05, 2025-03-31T14:05:00Z, as exports write them): an ISO
+ * timestamp, or null for a blank cell, so the insert keeps its default.
+ * A time with no zone is read as UTC.
+ */
+export function createdAtOf(values: Record<string, string>): string | null {
+  return timestampCell(values, "createdAt", "The create date");
+}
+
+/** A day or a time cell as an ISO timestamp; null when blank. */
+function timestampCell(
+  values: Record<string, string>,
+  target: string,
+  label: string,
+): string | null {
+  const raw = cell(values, target);
+  if (!raw) return null;
+  const text = raw.replace(" ", "T");
+  const withZone = /^\d{4}-\d{2}-\d{2}$/.test(text)
+    ? `${text}T00:00:00.000Z`
+    : /(Z|[+-]\d{2}:?\d{2})$/.test(text)
+      ? text
+      : `${text}Z`;
+  const parsed = new Date(withZone);
+  if (!/^\d{4}-\d{2}-\d{2}/.test(text) || Number.isNaN(parsed.getTime())) {
+    throw new RowError(
+      `${label} "${raw}" is not a day. Write it like 2025-03-31.`,
+    );
+  }
+  if (parsed.getTime() > Date.now() + 24 * 60 * 60 * 1000) {
+    throw new RowError(`${label} "${raw}" is in the future.`);
+  }
+  return parsed.toISOString();
+}
+
 /** The member a cell names, by email or name; null for a blank cell. */
 export function memberOf(run: ImportRun, raw: string | null): string | null {
   if (!raw) return null;

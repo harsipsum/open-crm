@@ -19,6 +19,13 @@ export const CURRENCY_CODES = [
   "HKD",
   "SGD",
   "ZAR",
+  "AED",
+  "SAR",
+  "QAR",
+  "KWD",
+  "BHD",
+  "OMR",
+  "INR",
 ] as const;
 
 export type CurrencyCode = (typeof CURRENCY_CODES)[number];
@@ -35,6 +42,13 @@ const DETAILS: Record<CurrencyCode, { name: string; minorUnits: number }> = {
   HKD: { name: "Hong Kong Dollar", minorUnits: 2 },
   SGD: { name: "Singapore Dollar", minorUnits: 2 },
   ZAR: { name: "South African Rand", minorUnits: 2 },
+  AED: { name: "UAE Dirham", minorUnits: 2 },
+  SAR: { name: "Saudi Riyal", minorUnits: 2 },
+  QAR: { name: "Qatari Riyal", minorUnits: 2 },
+  KWD: { name: "Kuwaiti Dinar", minorUnits: 3 },
+  BHD: { name: "Bahraini Dinar", minorUnits: 3 },
+  OMR: { name: "Omani Rial", minorUnits: 3 },
+  INR: { name: "Indian Rupee", minorUnits: 2 },
 };
 
 export const CURRENCIES = CURRENCY_CODES.map((code) => ({

@@ -6,6 +6,7 @@ import { COMPANY_NAME_MAX } from "@/types/schemas/companies";
 import { ImportRepository } from "../repositories/ImportRepository";
 import {
   cell,
+  createdAtOf,
   customValues,
   memberOf,
   parseRows,
@@ -52,6 +53,7 @@ function parseCompany(run: ImportRun, values: Record<string, string>) {
     name,
     domain,
     details,
+    createdAt: createdAtOf(values),
     ownerId: memberOf(run, cell(values, "owner")),
     writes: customValues(run, values),
   };
@@ -120,6 +122,7 @@ export async function importCompanies(
           website: company.domain ? `https://${company.domain}` : null,
           ownerId: company.ownerId,
           source: "IMPORT",
+          ...(company.createdAt ? { createdAt: company.createdAt } : {}),
           ...company.details,
         });
         existing.set(key, inserted.id);
