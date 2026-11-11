@@ -46,6 +46,7 @@ export const IMPORT_TARGETS = {
         "url",
         "web site",
         "company domain",
+        "company domain name",
         "company website",
       ],
       hint: "acme.com, or the website",
@@ -60,7 +61,7 @@ export const IMPORT_TARGETS = {
       label: "State",
       aliases: ["state", "region", "province"],
     },
-    { id: "country", label: "Country", aliases: [] },
+    { id: "country", label: "Country", aliases: ["country/region"] },
     {
       id: "linkedinUrl",
       label: "LinkedIn",
@@ -121,7 +122,13 @@ export const IMPORT_TARGETS = {
     {
       id: "company",
       label: "Company",
-      aliases: ["company name", "account", "account name", "company domain"],
+      aliases: [
+        "company name",
+        "account",
+        "account name",
+        "company domain",
+        "associated company",
+      ],
       required: true,
       hint: "A company's name or domain",
     },
