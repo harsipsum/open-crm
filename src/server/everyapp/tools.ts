@@ -5,6 +5,7 @@ import { companyTools } from "@/server/everyapp/tools/companies";
 import { contactTools } from "@/server/everyapp/tools/contacts";
 import { dashboardTools } from "@/server/everyapp/tools/dashboard";
 import { dealTools } from "@/server/everyapp/tools/deals";
+import { pipelineTools } from "@/server/everyapp/tools/pipelines";
 import { fieldTools } from "@/server/everyapp/tools/fields";
 import { listTools } from "@/server/everyapp/tools/lists";
 import { mailTools } from "@/server/everyapp/tools/mail";
@@ -34,6 +35,7 @@ const tools = {
   ...contactTools,
   ...listTools,
   ...dealTools,
+  ...pipelineTools,
   ...fieldTools,
   ...activityTools,
   ...mailTools,

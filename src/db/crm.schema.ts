@@ -346,6 +346,50 @@ export const contactBrief = sqliteTable("contact_brief", {
   refreshedAt: timestamp("refreshed_at").notNull().default(isoNow),
 });
 
+/**
+ * A named deal pipeline with its own stages (HubSpot's "Sales Pipeline",
+ * "Renewals"). A deal in one still carries a built-in `stage`, which the
+ * pipeline stage's kind and place map to, so reports keep counting it.
+ */
+export const pipeline = sqliteTable(
+  "pipeline",
+  {
+    id: text("id").primaryKey(),
+    organizationId: organizationId(),
+    name: text("name").notNull(),
+    position: integer("position").notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("pipeline_organization_name_uidx").on(
+      table.organizationId,
+      sql`lower(${table.name})`,
+    ),
+  ],
+);
+
+/** A pipeline's stages, in order: open ones, and won (DONE) or lost (DROPPED). */
+export const pipelineStage = sqliteTable(
+  "pipeline_stage",
+  {
+    id: text("id").primaryKey(),
+    organizationId: organizationId(),
+    pipelineId: text("pipeline_id")
+      .notNull()
+      .references(() => pipeline.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    kind: text("kind", { enum: STAGE_KINDS }).notNull().default("OPEN"),
+    position: integer("position").notNull(),
+  },
+  (table) => [
+    uniqueIndex("pipeline_stage_pipeline_name_uidx").on(
+      table.pipelineId,
+      sql`lower(${table.name})`,
+    ),
+    index("pipeline_stage_organization_idx").on(table.organizationId),
+  ],
+);
+
 export const deal = sqliteTable(
   "deal",
   {
@@ -366,6 +410,14 @@ export const deal = sqliteTable(
       .notNull()
       .default("DEMO_BOOKED"),
     stageChangedAt: timestamp("stage_changed_at").notNull().default(isoNow),
+    // Set when the deal sits in a named pipeline, at one of its own stages.
+    pipelineId: text("pipeline_id").references(() => pipeline.id, {
+      onDelete: "set null",
+    }),
+    pipelineStageId: text("pipeline_stage_id").references(
+      () => pipelineStage.id,
+      { onDelete: "set null" },
+    ),
     // Money is a double, rounded to the currency's minor unit when written.
     amount: real("amount"),
     currency: text("currency").notNull().default("USD"),
@@ -429,6 +481,8 @@ export const deal = sqliteTable(
       table.createdAt,
     ),
     index("deal_company_idx").on(table.companyId),
+    index("deal_pipeline_idx").on(table.pipelineId),
+    index("deal_pipeline_stage_idx").on(table.pipelineStageId),
   ],
 );
 

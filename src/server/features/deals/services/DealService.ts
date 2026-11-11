@@ -4,6 +4,7 @@ import { ConversionService } from "@/server/features/currency/services/Conversio
 import { DealContactRepository } from "@/server/features/deals/repositories/DealContactRepository";
 import { DealListRepository } from "@/server/features/deals/repositories/DealListRepository";
 import { DealRepository } from "@/server/features/deals/repositories/DealRepository";
+import { PipelineRepository } from "@/server/features/deals/repositories/PipelineRepository";
 import { FieldValuesService } from "@/server/features/fields/services/FieldValuesService";
 import {
   assertOwner,
@@ -115,6 +116,11 @@ async function getDeal(organizationId: string, id: string) {
 }
 
 export type DealDetail = Awaited<ReturnType<typeof getDeal>>;
+
+/** The named pipelines with their stages and what sits at each. */
+function listPipelines(organizationId: string) {
+  return PipelineRepository.summary(organizationId);
+}
 
 async function createDeal(organizationId: string, input: CreateDealInput) {
   await requireCompany(organizationId, input.companyId);
@@ -411,6 +417,7 @@ function bulkPurge(organizationId: string, ids: string[]) {
 export const DealService = {
   listDeals,
   getDeal,
+  listPipelines,
   createDeal,
   updateDeal,
   setStage,
