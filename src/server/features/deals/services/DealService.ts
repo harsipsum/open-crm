@@ -122,6 +122,26 @@ function listPipelines(organizationId: string) {
   return PipelineRepository.summary(organizationId);
 }
 
+/**
+ * Puts a pipeline's stages in this order (adding the pipeline or a stage
+ * when missing); its open deals then count as the built-in open stage at
+ * their stage's new place. Returns that pipeline as list_pipelines shows it.
+ */
+async function orderPipelineStages(
+  organizationId: string,
+  input: { pipeline: string; stages: string[] },
+) {
+  const id = await PipelineRepository.orderStages(
+    organizationId,
+    input.pipeline,
+    input.stages,
+  );
+  const pipelines = await PipelineRepository.summary(organizationId);
+  const found = pipelines.find((row) => row.id === id);
+  if (!found) throw new Error("Pipeline missing after ordering its stages");
+  return found;
+}
+
 async function createDeal(organizationId: string, input: CreateDealInput) {
   await requireCompany(organizationId, input.companyId);
   await assertOwner(organizationId, input.ownerId);
@@ -418,6 +438,7 @@ export const DealService = {
   listDeals,
   getDeal,
   listPipelines,
+  orderPipelineStages,
   createDeal,
   updateDeal,
   setStage,

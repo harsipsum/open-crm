@@ -1,5 +1,17 @@
-import { and, asc, count, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  sql,
+} from "drizzle-orm";
+import { sortBy } from "remeda";
 import { db } from "@/db";
+import { runBatch } from "@/db/runBatch";
 import { deal, pipeline, pipelineStage } from "@/db/schema";
 import type { DealStage, StageKind } from "@/shared/crm-enums";
 import { roundMoney } from "@/shared/currency";
@@ -109,9 +121,23 @@ function refOf(
   };
 }
 
+/** Open stages come first, then won, then lost. */
+const KIND_RANK: Record<StageKind, number> = { OPEN: 0, DONE: 1, DROPPED: 2 };
+
+/** A stage name's kind: won or renewed is a win, lost, churned or unqualified a loss. */
+export function stageKindOf(name: string): StageKind {
+  const words = name.toLowerCase();
+  if (/\b(won|renewed)\b/.test(words)) return "DONE";
+  if (/\b(lost|churned|unqualified)\b/.test(words)) return "DROPPED";
+  return "OPEN";
+}
+
 /**
- * The pipeline's stage of this name, added after its last stage when it
- * has none, as `kind` says.
+ * The pipeline's stage of this name, added when it has none, as `kind`
+ * says: a new open stage goes after the open ones, a won one after the
+ * won ones, a lost one last, so a file's order of first sight never puts
+ * an outcome before the stages that lead to it. Open stages already there
+ * keep their place, so no deal's built-in stage moves.
  */
 async function ensureStage(
   organizationId: string,
@@ -122,17 +148,34 @@ async function ensureStage(
   const stages = await stagesOf(organizationId, pipelineId);
   const found = refOf(pipelineId, stages, name);
   if (found) return found;
-  await db
-    .insert(pipelineStage)
-    .values({
-      id: crypto.randomUUID(),
-      organizationId,
-      pipelineId,
-      name,
-      kind,
-      position: (stages.at(-1)?.position ?? -1) + 1,
-    })
-    .onConflictDoNothing();
+  const before = stages.filter(
+    (stage) => KIND_RANK[stage.kind] <= KIND_RANK[kind],
+  );
+  const position = (before.at(-1)?.position ?? -1) + 1;
+  // One batch: the stages after it shift down as it goes in.
+  await runBatch((tx) => [
+    tx
+      .update(pipelineStage)
+      .set({ position: sql`${pipelineStage.position} + 1` })
+      .where(
+        and(
+          eq(pipelineStage.organizationId, organizationId),
+          eq(pipelineStage.pipelineId, pipelineId),
+          gte(pipelineStage.position, position),
+        ),
+      ),
+    tx
+      .insert(pipelineStage)
+      .values({
+        id: crypto.randomUUID(),
+        organizationId,
+        pipelineId,
+        name,
+        kind,
+        position,
+      })
+      .onConflictDoNothing(),
+  ]);
   const added = refOf(
     pipelineId,
     await stagesOf(organizationId, pipelineId),
@@ -212,9 +255,64 @@ async function summary(organizationId: string) {
   }));
 }
 
+/**
+ * Puts the pipeline's stages in this order (adding any it lacks, of the
+ * kind its name says); stages left out keep their order after them. Every
+ * open deal in the pipeline then counts as the built-in open stage at its
+ * stage's new place. Won and lost deals don't move.
+ */
+async function orderStages(
+  organizationId: string,
+  pipelineName: string,
+  names: string[],
+) {
+  const pipelineId = await ensurePipeline(organizationId, pipelineName);
+  for (const name of names) {
+    await ensureStage(organizationId, pipelineId, name, stageKindOf(name));
+  }
+  const stages = await stagesOf(organizationId, pipelineId);
+  const wanted = names.map((name) => name.toLowerCase());
+  const rank = (stage: { name: string }) => {
+    const at = wanted.indexOf(stage.name.toLowerCase());
+    return at === -1 ? wanted.length : at;
+  };
+  // Stable: stages left out keep their order.
+  const ordered = sortBy(stages, rank);
+  // One batch: the order and the open deals' built-in stages move together.
+  let openPlace = 0;
+  await runBatch((tx) =>
+    ordered.flatMap((stage, position) => {
+      const moveStage = tx
+        .update(pipelineStage)
+        .set({ position })
+        .where(
+          and(
+            eq(pipelineStage.organizationId, organizationId),
+            eq(pipelineStage.id, stage.id),
+          ),
+        );
+      if (stage.kind !== "OPEN") return [moveStage];
+      const recount = tx
+        .update(deal)
+        .set({ stage: builtInStage("OPEN", openPlace) })
+        .where(
+          and(
+            eq(deal.organizationId, organizationId),
+            eq(deal.pipelineStageId, stage.id),
+            inArray(deal.stage, OPEN_DEAL_STAGES),
+          ),
+        );
+      openPlace += 1;
+      return [moveStage, recount];
+    }),
+  );
+  return pipelineId;
+}
+
 export const PipelineRepository = {
   ensurePipeline,
   ensureStage,
+  orderStages,
   place,
   summary,
 };

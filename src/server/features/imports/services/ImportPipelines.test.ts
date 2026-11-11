@@ -136,9 +136,10 @@ describe("ImportService pipelines", () => {
       [
         "Renewals",
         [
+          // First seen after the outcomes, still placed before them.
+          ["Renewal Due", 1],
           ["Renewed", 1],
           ["Churned", 1],
-          ["Renewal Due", 1],
         ],
       ],
     ]);
@@ -151,13 +152,95 @@ describe("ImportService pipelines", () => {
       chunk([deal("B lead", "Renewals", "Renewal Due")]),
     );
     expect(
-      (await DealService.listPipelines(A.organizationId))[1]?.stages[2]?.deals,
+      (await DealService.listPipelines(A.organizationId))[1]?.stages[0]?.deals,
     ).toBe(1);
     expect(
       await database.rows(
         "SELECT organization_id FROM pipeline WHERE name = 'Renewals' ORDER BY organization_id",
       ),
     ).toEqual([{ organization_id: "org_a" }, { organization_id: "org_b" }]);
+  });
+
+  it("puts a pipeline's stages in its real order and re-counts open deals", async () => {
+    // A HubSpot export lists deals, not stages: first sight is file order.
+    await ImportService.importChunk(
+      A,
+      chunk([
+        deal("Demo", "Sales Pipeline", "Technical Demo/POC"),
+        deal("Won", "Sales Pipeline", "Closed Won"),
+        deal("Lost", "Sales Pipeline", "Closed Lost"),
+        deal("Best", "Sales Pipeline", "Best Case"),
+        deal("Lead", "Sales Pipeline", "Lead Generated"),
+        deal("Commit", "Sales Pipeline", "Forecast Commit"),
+      ]),
+    );
+    const order = async () =>
+      (await DealService.listPipelines(A.organizationId))[0]?.stages.map(
+        (stage) => stage.name,
+      );
+    // Outcomes already land last; open stages in first-seen order.
+    expect(await order()).toEqual([
+      "Technical Demo/POC",
+      "Best Case",
+      "Lead Generated",
+      "Forecast Commit",
+      "Closed Won",
+      "Closed Lost",
+    ]);
+
+    const real = [
+      "Lead Generated",
+      "Technical Demo/POC",
+      "Best Case",
+      "Forecast Commit",
+      "Closed Won",
+      "Closed Lost",
+    ];
+    const ordered = await DealService.orderPipelineStages(A.organizationId, {
+      pipeline: "sales pipeline",
+      stages: real,
+    });
+    expect(ordered.stages.map((stage) => [stage.name, stage.deals])).toEqual(
+      real.map((name) => [name, 1]),
+    );
+    expect(await order()).toEqual(real);
+    expect(
+      await database.rows(
+        "SELECT name, stage FROM deal WHERE organization_id = 'org_a' ORDER BY name",
+      ),
+    ).toEqual([
+      { name: "Best", stage: "DECISION_MAKER_BOUGHT_IN" },
+      { name: "Commit", stage: "CONTRACT_SENT" },
+      { name: "Demo", stage: "QUALIFIED_TO_BUY" },
+      { name: "Lead", stage: "DEMO_BOOKED" },
+      { name: "Lost", stage: "CLOSED_LOST" },
+      { name: "Won", stage: "CLOSED_WON" },
+    ]);
+
+    // A re-import neither adds a stage nor undoes the order.
+    await ImportService.importChunk(
+      A,
+      chunk([deal("Lead", "Sales Pipeline", "Lead Generated")]),
+    );
+    expect(await order()).toEqual(real);
+
+    // Another organization's pipeline of the same name is untouched.
+    await ImportService.importChunk(
+      B,
+      chunk([
+        deal("B won", "Sales Pipeline", "Closed Won"),
+        deal("B lead", "Sales Pipeline", "Lead Generated"),
+      ]),
+    );
+    await DealService.orderPipelineStages(A.organizationId, {
+      pipeline: "Sales Pipeline",
+      stages: ["Closed Lost", ...real.slice(0, 5)],
+    });
+    expect(
+      (await DealService.listPipelines(B.organizationId))[0]?.stages.map(
+        (stage) => stage.name,
+      ),
+    ).toEqual(["Lead Generated", "Closed Won"]);
   });
 
   it("moves a pipeline deal to its pipeline's won stage when won", async () => {

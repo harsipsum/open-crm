@@ -2,15 +2,12 @@ import { ConversionService } from "@/server/features/currency/services/Conversio
 import { DealRepository } from "@/server/features/deals/repositories/DealRepository";
 import {
   PipelineRepository,
+  stageKindOf,
   type PipelineStageRef,
 } from "@/server/features/deals/repositories/PipelineRepository";
 import { DealService } from "@/server/features/deals/services/DealService";
 import { FieldValueRepository } from "@/server/features/fields/repositories/FieldValueRepository";
-import {
-  DEAL_STAGES,
-  type DealStage,
-  type StageKind,
-} from "@/shared/crm-enums";
+import { DEAL_STAGES, type DealStage } from "@/shared/crm-enums";
 import { CURRENCY_CODES, roundMoney, toCurrencyCode } from "@/shared/currency";
 import {
   DEAL_STAGE_LABELS,
@@ -76,13 +73,6 @@ function stageOf(raw: string | null): DealStage | null {
 }
 
 const PIPELINE_NAME_MAX = 120;
-
-function stageKindOf(name: string): StageKind {
-  const words = name.toLowerCase();
-  if (/\b(won|renewed)\b/.test(words)) return "DONE";
-  if (/\b(lost|churned|unqualified)\b/.test(words)) return "DROPPED";
-  return "OPEN";
-}
 
 /**
  * Resolves a row's pipeline and stage by name, adding what's missing, once
