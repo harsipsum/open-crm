@@ -72,6 +72,21 @@ export default {
       ],
       capabilities: ["microsoft-365"],
     },
+    // The Inbox (src/server/features/inbox): WhatsApp, Instagram and other
+    // channels with the AI agent's drafts, run by the Inbox engine Worker.
+    inbox: {
+      name: "Inbox",
+      why: "Conversations from WhatsApp, Instagram and the other channels, linked to contacts, with AI drafts a person approves.",
+      steps: [
+        "Deploy the Inbox engine (wa-cloud) on the same Cloudflare account and copy its INBOX_TOKEN.",
+      ],
+      secrets: [
+        {
+          name: "INBOX_API_TOKEN",
+          how: "The Inbox engine's INBOX_TOKEN (64 hex characters).",
+        },
+      ],
+    },
     // docs/maintainers/runbooks/erase-organization.md
     erasure: {
       name: "Organization erasure",

@@ -11,6 +11,9 @@ declare namespace Cloudflare {
     // Set only while an operator erases an organization
     // (docs/maintainers/runbooks/erase-organization.md): signs its requests.
     ERASURE_SECRET?: string;
+    // The Inbox engine (wa-cloud Worker) and the token it accepts from the CRM.
+    INBOX_API_URL?: string;
+    INBOX_API_TOKEN?: string;
   }
 }
 

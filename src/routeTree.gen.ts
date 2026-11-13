@@ -15,6 +15,7 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppCompaniesRouteImport } from './routes/_app/companies'
 import { Route as AppContactsRouteImport } from './routes/_app/contacts'
 import { Route as AppDealsRouteImport } from './routes/_app/deals'
+import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppOverviewRouteImport } from './routes/_app/overview'
 import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/route'
 import { Route as AppCompaniesCompanyIdRouteImport } from './routes/_app/companies_.$companyId'
@@ -55,6 +56,11 @@ const AppContactsRoute = AppContactsRouteImport.update({
 const AppDealsRoute = AppDealsRouteImport.update({
   id: '/deals',
   path: '/deals',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppInboxRoute = AppInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppOverviewRoute = AppOverviewRouteImport.update({
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/companies': typeof AppCompaniesRoute
   '/contacts': typeof AppContactsRoute
   '/deals': typeof AppDealsRoute
+  '/inbox': typeof AppInboxRoute
   '/overview': typeof AppOverviewRoute
   '/companies/$companyId': typeof AppCompaniesCompanyIdRoute
   '/contacts/$contactId': typeof AppContactsContactIdRoute
@@ -147,6 +154,7 @@ export interface FileRoutesByTo {
   '/companies': typeof AppCompaniesRoute
   '/contacts': typeof AppContactsRoute
   '/deals': typeof AppDealsRoute
+  '/inbox': typeof AppInboxRoute
   '/overview': typeof AppOverviewRoute
   '/': typeof AppIndexRoute
   '/companies/$companyId': typeof AppCompaniesCompanyIdRoute
@@ -168,6 +176,7 @@ export interface FileRoutesById {
   '/_app/companies': typeof AppCompaniesRoute
   '/_app/contacts': typeof AppContactsRoute
   '/_app/deals': typeof AppDealsRoute
+  '/_app/inbox': typeof AppInboxRoute
   '/_app/overview': typeof AppOverviewRoute
   '/_app/': typeof AppIndexRoute
   '/_app/companies_/$companyId': typeof AppCompaniesCompanyIdRoute
@@ -190,6 +199,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/contacts'
     | '/deals'
+    | '/inbox'
     | '/overview'
     | '/companies/$companyId'
     | '/contacts/$contactId'
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
     | '/companies'
     | '/contacts'
     | '/deals'
+    | '/inbox'
     | '/overview'
     | '/'
     | '/companies/$companyId'
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
     | '/_app/companies'
     | '/_app/contacts'
     | '/_app/deals'
+    | '/_app/inbox'
     | '/_app/overview'
     | '/_app/'
     | '/_app/companies_/$companyId'
@@ -290,6 +302,13 @@ declare module '@tanstack/react-router' {
       path: '/deals'
       fullPath: '/deals'
       preLoaderRoute: typeof AppDealsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/inbox': {
+      id: '/_app/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof AppInboxRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/overview': {
@@ -403,6 +422,7 @@ interface AppRouteRouteChildren {
   AppCompaniesRoute: typeof AppCompaniesRoute
   AppContactsRoute: typeof AppContactsRoute
   AppDealsRoute: typeof AppDealsRoute
+  AppInboxRoute: typeof AppInboxRoute
   AppOverviewRoute: typeof AppOverviewRoute
   AppIndexRoute: typeof AppIndexRoute
   AppCompaniesCompanyIdRoute: typeof AppCompaniesCompanyIdRoute
@@ -415,6 +435,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppCompaniesRoute: AppCompaniesRoute,
   AppContactsRoute: AppContactsRoute,
   AppDealsRoute: AppDealsRoute,
+  AppInboxRoute: AppInboxRoute,
   AppOverviewRoute: AppOverviewRoute,
   AppIndexRoute: AppIndexRoute,
   AppCompaniesCompanyIdRoute: AppCompaniesCompanyIdRoute,

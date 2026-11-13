@@ -17,6 +17,7 @@ import { serveImage, IMAGE_ROUTE_PREFIX } from "@/server/lib/images";
 import { serveErasure } from "@/server/features/erasure/erasureRoute";
 import { ERASURE_PATH } from "@/shared/erasure";
 import { serveEveryAppRequest } from "@/server/lib/gateway-attribution";
+import { isInboxPath, serveInbox } from "@/server/features/inbox/inboxRoute";
 
 const startHandler = createStartHandler(defaultStreamHandler);
 
@@ -77,6 +78,8 @@ function routeAppRequest(
   if (pathname.startsWith(IMAGE_ROUTE_PREFIX)) {
     return serveImage(request, env);
   }
+  // The Inbox page and its API (features/inbox).
+  if (isInboxPath(pathname)) return serveInbox(request);
   return appFetch(request);
 }
 

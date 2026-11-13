@@ -2,6 +2,7 @@ import {
   Building2,
   CircleDollarSign,
   LayoutDashboard,
+  MessagesSquare,
   Settings,
   Users,
   type LucideIcon,
@@ -21,6 +22,7 @@ type NavItem = {
  * The lists follow in their own section (SidebarLists).
  */
 export const navItems: NavItem[] = [
+  { label: "Inbox", icon: MessagesSquare, link: linkOptions({ to: "/inbox" }) },
   { label: "Contacts", icon: Users, link: linkOptions({ to: "/contacts" }) },
   {
     label: "Companies",
