@@ -81,9 +81,17 @@ export function dealColumns({
       enableSorting: true,
       header: ({ column }) => <SortableHeader column={column} label="Stage" />,
       meta: { label: "Stage", width: 120 },
-      cell: ({ row }) => (
-        <DealStageMenu dealId={row.original.id} stage={row.original.stage} />
-      ),
+      // A deal in a named pipeline (Vistar's HubSpot stages) shows that
+      // pipeline's stage; VisCRM's own flows move it.
+      cell: ({ row }) =>
+        row.original.pipelineStage ? (
+          <span className="inline-flex items-center gap-1.5 text-sm whitespace-nowrap">
+            <span className="size-1.5 shrink-0 rounded-full bg-primary" />
+            {row.original.pipelineStage}
+          </span>
+        ) : (
+          <DealStageMenu dealId={row.original.id} stage={row.original.stage} />
+        ),
     },
     {
       id: "amount",
