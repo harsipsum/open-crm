@@ -12,7 +12,7 @@
  */
 export default {
   id: "viscrm",
-  name: "VisCRM (staging)",
+  name: "VisCRM",
   description:
     "Companies, contacts and deals, with mail, meetings and website visits filed on them.",
   icon: "/everyapp-icon.svg",
