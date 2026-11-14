@@ -12,6 +12,7 @@ import { mailTools } from "@/server/everyapp/tools/mail";
 import { savedViewTools } from "@/server/everyapp/tools/savedViews";
 import { searchTools } from "@/server/everyapp/tools/search";
 import { trackingTools } from "@/server/everyapp/tools/tracking";
+import { visTools } from "@/server/everyapp/tools/vis";
 import { workspaceTools } from "@/server/everyapp/tools/workspace";
 
 // The CRM's tools, its one API (docs/maintainers/mcp.md), served by the Every
@@ -43,6 +44,7 @@ const tools = {
   ...dashboardTools,
   ...bulkTools,
   ...savedViewTools,
+  ...visTools,
 };
 
 /**

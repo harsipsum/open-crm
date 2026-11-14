@@ -1,0 +1,329 @@
+import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
+import { ActivityRepository } from "@/server/features/activities/repositories/ActivityRepository";
+import { CompanyService } from "@/server/features/companies/services/CompanyService";
+import { ContactRepository } from "@/server/features/contacts/repositories/ContactRepository";
+import { ContactService } from "@/server/features/contacts/services/ContactService";
+import { DealContactRepository } from "@/server/features/deals/repositories/DealContactRepository";
+import { PipelineRepository } from "@/server/features/deals/repositories/PipelineRepository";
+import { DealService } from "@/server/features/deals/services/DealService";
+import { WorkspaceService } from "@/server/features/workspace/services/WorkspaceService";
+import { fitScore } from "@/server/features/vis/fitScore";
+import { VisRepository } from "@/server/features/vis/repositories/VisRepository";
+import { SdrService } from "@/server/features/vis/services/SdrService";
+import { AppError } from "@/server/lib/errors";
+import { OPEN_DEAL_STAGES } from "@/shared/deal-stages";
+import { normalizeDomain } from "@/shared/domain";
+import {
+  INBOUND_SOURCES,
+  PRODUCT_LABELS,
+  STAGE_ROLES,
+  VISTAR_PIPELINE,
+  type VisApp,
+} from "@/shared/vis";
+import type { LeadInput } from "@/types/schemas/vis";
+
+// A lead from any channel becomes a company, a contact and a deal at the
+// intake stage of the Sales Pipeline, with its source, campaign, creative,
+// click ids, consent, product and fit score set by the system at first
+// touch. Inbound leads get the SDR's 5-minute call task on creation; the
+// research and everything after it run on the tick (VisTickService).
+
+/** Vistar's pipeline, in HubSpot's order; safe to run again. */
+async function setupPipeline(organizationId: string) {
+  await WorkspaceService.requireDealsEnabled(organizationId);
+  return DealService.orderPipelineStages(organizationId, {
+    pipeline: VISTAR_PIPELINE.name,
+    stages: [...VISTAR_PIPELINE.stages],
+  });
+}
+
+async function requirePipeline(organizationId: string) {
+  const found = await VisRepository.pipelineByName(
+    organizationId,
+    VISTAR_PIPELINE.name,
+  );
+  if (!found || found.stages.length === 0) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      `The ${VISTAR_PIPELINE.name} isn't set up yet: run vis_setup_pipeline first.`,
+    );
+  }
+  return found;
+}
+
+/**
+ * The owner a new lead goes to: the member named, else whoever holds the
+ * fewest VisCRM leads (round robin over the members).
+ */
+async function ownerFor(organizationId: string, ownerEmail?: string) {
+  const members = await AuthRepository.listMembers(organizationId);
+  if (members.length === 0) {
+    throw new AppError("VALIDATION_ERROR", "The CRM has no members yet.");
+  }
+  if (ownerEmail) {
+    const named = members.find(
+      (member) => member.email.toLowerCase() === ownerEmail.toLowerCase(),
+    );
+    if (!named) {
+      throw new AppError("VALIDATION_ERROR", `No member is ${ownerEmail}.`);
+    }
+    return named.userId;
+  }
+  const deals = await VisRepository.trackedDeals(organizationId);
+  const load = new Map(members.map((member) => [member.userId, 0]));
+  for (const row of deals) {
+    if (load.has(row.ownerId))
+      load.set(row.ownerId, (load.get(row.ownerId) ?? 0) + 1);
+  }
+  let pick = members[0].userId;
+  for (const [userId, count] of load) {
+    if (count < (load.get(pick) ?? 0)) pick = userId;
+  }
+  return pick;
+}
+
+async function companyFor(
+  organizationId: string,
+  input: LeadInput,
+  ownerId: string,
+) {
+  const domain = normalizeDomain(input.company.domain ?? "") || null;
+  if (domain) {
+    const found = await VisRepository.liveCompanyByDomain(
+      organizationId,
+      domain,
+    );
+    if (found) return found.id;
+  }
+  const created = await CompanyService.createCompany(organizationId, {
+    name: input.company.name,
+    domain: domain ?? undefined,
+    ownerId,
+  });
+  return created.id;
+}
+
+async function contactFor(
+  organizationId: string,
+  input: LeadInput,
+  companyId: string,
+  ownerId: string,
+) {
+  const email = input.person.email?.trim().toLowerCase();
+  if (email) {
+    const existing = await ContactRepository.findLiveByEmail(
+      organizationId,
+      email,
+    );
+    if (existing) return existing.id;
+  }
+  const created = await ContactService.createContact(organizationId, {
+    firstName: input.person.firstName,
+    lastName: input.person.lastName,
+    email,
+    phone: input.person.phone,
+    title: input.person.title,
+    companyId,
+    ownerId,
+  });
+  return created.id;
+}
+
+/** Creates the lead's company, contact and deal; returns the deal. */
+async function createLead(
+  organizationId: string,
+  input: LeadInput,
+  app: VisApp | null,
+) {
+  await WorkspaceService.requireDealsEnabled(organizationId);
+  const pipeline = await requirePipeline(organizationId);
+  const ownerId = await ownerFor(organizationId, input.ownerEmail);
+  const companyId = await companyFor(organizationId, input, ownerId);
+  const contactId = await contactFor(organizationId, input, companyId, ownerId);
+  const productLabel = input.product ? PRODUCT_LABELS[input.product] : "Lead";
+  const created = await DealService.createDeal(organizationId, {
+    name: input.dealName ?? `${input.company.name}: ${productLabel}`,
+    companyId,
+    ownerId,
+    stage: "DEMO_BOOKED",
+    amount: input.amount ?? null,
+    currency: input.currency,
+  });
+  await DealContactRepository.attach(organizationId, {
+    dealId: created.id,
+    contactId,
+    role: "Lead",
+  });
+  const intake = await PipelineRepository.ensureStage(
+    organizationId,
+    pipeline.id,
+    STAGE_ROLES.intake,
+    "OPEN",
+  );
+  await PipelineRepository.place(organizationId, created.id, intake);
+
+  const now = new Date().toISOString();
+  const row = attributionRow(input, app, now);
+  await VisRepository.insertAttribution({
+    ...row,
+    dealId: created.id,
+    organizationId,
+    contactId,
+  });
+  if (input.note) {
+    await addNote(organizationId, created.id, input.note, app);
+  }
+  if (INBOUND_SOURCES.includes(row.source)) {
+    await SdrService.startFirstCall(organizationId, {
+      dealId: created.id,
+      contactId,
+      ownerId,
+      createdAt: now,
+    });
+  }
+  console.log("[vis] lead created", {
+    organizationId,
+    dealId: created.id,
+    source: row.source,
+    app,
+    fit: row.fitScore,
+  });
+  return {
+    dealId: created.id,
+    companyId,
+    contactId,
+    ownerId,
+    fitScore: row.fitScore,
+  };
+}
+
+/** The system fields a lead is created with, its fit score among them. */
+function attributionRow(input: LeadInput, app: VisApp | null, now: string) {
+  const touch = input.attribution;
+  const qualifier = input.qualifier ?? {};
+  const role = qualifier.role ?? input.person.title ?? null;
+  const fit = fitScore({
+    product: input.product ?? null,
+    country: qualifier.country ?? null,
+    headcount: qualifier.headcount ?? null,
+    role,
+    erp: qualifier.erp ?? null,
+    timelineMonths: qualifier.timelineMonths ?? null,
+  });
+  return {
+    source: touch.source,
+    campaign: touch.campaign ?? null,
+    creativeId: touch.creativeId ?? null,
+    firstTouchAt: touch.firstTouchAt ?? now,
+    landingUrl: touch.landingUrl ?? null,
+    utmSource: touch.utmSource ?? null,
+    utmMedium: touch.utmMedium ?? null,
+    gclid: touch.gclid ?? null,
+    fbclid: touch.fbclid ?? null,
+    ctwaClid: touch.ctwaClid ?? null,
+    liFatId: touch.liFatId ?? null,
+    consent: touch.consent ?? "UNKNOWN",
+    consentAt: touch.consent === "GRANTED" ? (touch.consentAt ?? now) : null,
+    product: input.product ?? null,
+    orderType: input.orderType ?? "NEW",
+    country: qualifier.country ?? null,
+    headcount: qualifier.headcount ?? null,
+    role,
+    erp: qualifier.erp ?? null,
+    timelineMonths: qualifier.timelineMonths ?? null,
+    users: qualifier.users ?? null,
+    fitScore: fit.score,
+    fitReasons: fit.reasons,
+    createdByApp: app,
+  };
+}
+
+/**
+ * Moves a deal to a named stage of its pipeline, exactly: the built-in
+ * stage follows from the stage's kind and place, so reports keep counting.
+ */
+async function moveToStage(
+  organizationId: string,
+  input: { dealId: string; stage: string; reason?: string },
+  app: VisApp | null,
+  actorId?: string,
+) {
+  const found = await DealService.getDeal(organizationId, input.dealId);
+  const pipeline = await requirePipeline(organizationId);
+  const index = pipeline.stages.findIndex(
+    (stage) => stage.name.toLowerCase() === input.stage.trim().toLowerCase(),
+  );
+  const target = pipeline.stages[index];
+  if (!target) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      `${pipeline.name} has no stage "${input.stage}". Stages: ${pipeline.stages.map((stage) => stage.name).join(", ")}.`,
+    );
+  }
+  const openPlace = pipeline.stages
+    .slice(0, index)
+    .filter((stage) => stage.kind === "OPEN").length;
+  const builtIn =
+    target.kind === "DONE"
+      ? "CLOSED_WON"
+      : target.kind === "DROPPED"
+        ? "CLOSED_LOST"
+        : (OPEN_DEAL_STAGES[Math.min(openPlace, OPEN_DEAL_STAGES.length - 1)] ??
+          "DEMO_BOOKED");
+  await DealService.setStage(
+    organizationId,
+    { id: input.dealId, stage: builtIn, closedReason: input.reason },
+    actorId ?? found.owner.id,
+  );
+  await PipelineRepository.place(organizationId, input.dealId, {
+    id: target.id,
+    pipelineId: pipeline.id,
+    kind: target.kind,
+    stage: builtIn,
+  });
+  if (app) {
+    await addNote(
+      organizationId,
+      input.dealId,
+      `Moved to ${target.name}.`,
+      app,
+    );
+  }
+  console.log("[vis] stage set", {
+    organizationId,
+    dealId: input.dealId,
+    stage: target.name,
+    app,
+  });
+  return { dealId: input.dealId, stage: target.name };
+}
+
+/** A note on the deal, signed by the app that wrote it. */
+async function addNote(
+  organizationId: string,
+  dealId: string,
+  body: string,
+  app: VisApp | null,
+) {
+  const found = await DealService.getDeal(organizationId, dealId);
+  const id = await ActivityRepository.insert({
+    organizationId,
+    type: "NOTE",
+    subject: app ? `From ${app}` : "VisCRM",
+    body,
+    occurredAt: new Date().toISOString(),
+    dueAt: null,
+    companyId: found.company.id,
+    contactId: null,
+    dealId,
+    createdById: null,
+  });
+  return { id };
+}
+
+export const IntakeService = {
+  setupPipeline,
+  createLead,
+  moveToStage,
+  addNote,
+};
