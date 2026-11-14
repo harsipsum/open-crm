@@ -61,6 +61,24 @@ async function asana(token: string, path: string, init?: RequestInit) {
   return JSON.parse(text) as unknown;
 }
 
+/**
+ * The project's custom fields. A workspace on Asana's free plan has none and
+ * answers 402 for them: every value then goes in the description.
+ */
+async function customFields(token: string, projectGid: string) {
+  const response = await fetch(
+    `${ASANA}/projects/${projectGid}/custom_field_settings?opt_fields=custom_field.name,custom_field.resource_subtype,custom_field.enum_options.name`,
+    {
+      headers: { authorization: `Bearer ${token}`, accept: "application/json" },
+    },
+  );
+  if (response.status === 402) return [];
+  if (!response.ok) {
+    throw new Error(`Asana custom fields answered ${response.status}`);
+  }
+  return settingsAnswer.parse(await response.json()).data;
+}
+
 /** The intake fields' values for this deal, by the project's field names. */
 async function fieldValues(organizationId: string, dealId: string) {
   const found = await DealService.getDeal(organizationId, dealId);
@@ -148,12 +166,7 @@ async function handOff(
   }
   try {
     const { found, lead, values } = await fieldValues(organizationId, dealId);
-    const settings = settingsAnswer.parse(
-      await asana(
-        token,
-        `/projects/${projectGid}/custom_field_settings?opt_fields=custom_field.name,custom_field.resource_subtype,custom_field.enum_options.name`,
-      ),
-    ).data;
+    const settings = await customFields(token, projectGid);
     const sections = sectionsAnswer.parse(
       await asana(token, `/projects/${projectGid}/sections?opt_fields=name`),
     ).data;

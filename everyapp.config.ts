@@ -204,6 +204,6 @@ export default {
     { path: "/internal/erase-organization", methods: ["POST"] },
     // VisCRM's write API for the sibling apps; every call carries its app's
     // key, which names the organization (src/server/features/vis/visApiRoute.ts).
-    { path: "/api/vis/*", methods: ["GET", "POST"] },
+    { path: "/api/vis/**", methods: ["GET", "POST"] },
   ],
 } as const;
