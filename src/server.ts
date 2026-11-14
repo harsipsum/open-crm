@@ -15,6 +15,7 @@ import {
 } from "@/server/features/health/healthRoutes";
 import { serveImage, IMAGE_ROUTE_PREFIX } from "@/server/lib/images";
 import { serveErasure } from "@/server/features/erasure/erasureRoute";
+import { isVisApiPath, serveVisApi } from "@/server/features/vis/visApiRoute";
 import { ERASURE_PATH } from "@/shared/erasure";
 import { serveEveryAppRequest } from "@/server/lib/gateway-attribution";
 
@@ -107,6 +108,11 @@ async function handleRequest(
       // but the erasure route below.
       if (isTrackingPath(new URL(verified.url).pathname)) {
         return serveTracking(verified);
+      }
+      // VisCRM's write API for the sibling apps: public at the gateway,
+      // and every call carries its own app key (visApiRoute.ts).
+      if (isVisApiPath(new URL(verified.url).pathname)) {
+        return serveVisApi(verified);
       }
       if (new URL(verified.url).pathname === HEALTH_PATH) return serveHealth();
       // An operator erasing an organization: signed, and 404 unless armed.

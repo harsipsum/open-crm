@@ -1,6 +1,6 @@
 {
-	"name": "OpenCRM",
-	"short_name": "OpenCRM",
+	"name": "CRM",
+	"short_name": "CRM",
 	"icons": [
 		{
 			"src": "/web-app-manifest-192x192.png",

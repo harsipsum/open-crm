@@ -13,6 +13,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import * as React from "react";
 import { DefaultCatchBoundary } from "@/client/components/DefaultCatchBoundary";
 import { PRODUCT_NAME } from "@/client/lib/page-title";
+import { brandCss } from "@/shared/brand";
 import {
   themePreferenceInitScript,
   useThemePreference,
@@ -69,6 +70,8 @@ export const Route = createRootRoute({
       { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
       { rel: "manifest", href: "/site.webmanifest" },
     ],
+    // The install's brand pack colours (src/shared/brand.ts).
+    styles: [{ children: brandCss() }],
     scripts: [],
   }),
   component: AppLayout,

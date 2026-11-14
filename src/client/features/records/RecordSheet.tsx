@@ -79,7 +79,7 @@ type RecordHeader = {
 
 /** A related-record section appended to Details. */
 type RelatedSection = {
-  value: "contacts" | "deals";
+  value: "contacts" | "deals" | "lead";
   content: ReactNode;
 };
 

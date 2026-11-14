@@ -86,6 +86,104 @@ export default {
         },
       ],
     },
+    // VisCRM (src/server/features/vis). Each is optional: without it the
+    // step waits and the deal's Lead tab says what is missing.
+    "vis-research": {
+      name: "Lead research (Composio Instant)",
+      why: "Company research at intake and person research at Qualified, billed per call to the Composio organization's balance.",
+      steps: [
+        "Create an API key at https://dashboard.composio.dev and turn on Instant Toolkits in the project's Settings.",
+      ],
+      secrets: [
+        {
+          name: "COMPOSIO_API_KEY",
+          how: "The Composio project API key (x-api-key).",
+        },
+      ],
+    },
+    "vis-asana": {
+      name: "Won deals to Asana",
+      why: "A won deal becomes an Asana intake task with every field filled, under a service identity.",
+      steps: [
+        "Create a personal access token for the service identity (not a person) at https://app.asana.com/0/my-apps.",
+        "Take the intake project's id from its URL; the task lands in its New Orders section.",
+      ],
+      secrets: [
+        { name: "ASANA_TOKEN", how: "The service identity's access token." },
+        { name: "ASANA_PROJECT_GID", how: "The intake project's id." },
+      ],
+    },
+    "vis-links": {
+      name: "Links back to the CRM",
+      why: "Asana tasks the minute cron writes link to the deal.",
+      steps: ["The CRM's own address, e.g. https://crm.example.com"],
+      secrets: [{ name: "VIS_CRM_ORIGIN", how: "The CRM's https origin." }],
+    },
+    "vis-conversions-google": {
+      name: "Offline conversions: Google Ads",
+      why: "Qualified and won deals are sent to Google Ads through the Data Manager API when VIS_CONVERSIONS_LIVE is 1; otherwise recorded as a dry run.",
+      steps: [
+        "https://developers.google.com/data-manager/api/devguides/events/google-ads/offline/upgrade",
+      ],
+      secrets: [
+        {
+          name: "VIS_CONVERSIONS_LIVE",
+          how: "1 to send; anything else records a dry run.",
+        },
+        {
+          name: "GOOGLE_DATA_MANAGER_TOKEN",
+          how: "An OAuth access token with the Data Manager scope.",
+        },
+        {
+          name: "GOOGLE_ADS_CUSTOMER_ID",
+          how: "The conversion customer's id, digits only.",
+        },
+        {
+          name: "GOOGLE_ADS_QUALIFIED_ACTION_ID",
+          how: "The qualified-lead conversion action's id.",
+        },
+        {
+          name: "GOOGLE_ADS_PURCHASE_ACTION_ID",
+          how: "The won-deal conversion action's id.",
+        },
+      ],
+    },
+    "vis-conversions-meta": {
+      name: "Offline conversions: Meta",
+      why: "Qualified and won deals are sent to Meta's Conversions API (click-to-WhatsApp included) when VIS_CONVERSIONS_LIVE is 1.",
+      steps: [
+        "https://developers.facebook.com/docs/marketing-api/conversions-api/",
+      ],
+      secrets: [
+        { name: "META_DATASET_ID", how: "The dataset (pixel) id." },
+        { name: "META_CAPI_TOKEN", how: "A Conversions API access token." },
+        {
+          name: "META_WABA_ID",
+          how: "The WhatsApp Business Account id, for click-to-WhatsApp.",
+        },
+      ],
+    },
+    "vis-conversions-linkedin": {
+      name: "Offline conversions: LinkedIn",
+      why: "Qualified and won deals are sent to LinkedIn's Conversions API when VIS_CONVERSIONS_LIVE is 1.",
+      steps: [
+        "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/ads-reporting/conversions-api",
+      ],
+      secrets: [
+        {
+          name: "LINKEDIN_CAPI_TOKEN",
+          how: "An access token with the conversions scope.",
+        },
+        {
+          name: "LINKEDIN_QUALIFIED_CONVERSION_URN",
+          how: "urn:lla:llaPartnerConversion:<id> for qualified leads.",
+        },
+        {
+          name: "LINKEDIN_PURCHASE_CONVERSION_URN",
+          how: "urn:lla:llaPartnerConversion:<id> for won deals.",
+        },
+      ],
+    },
   },
   // Every member of the organization works in the CRM.
   access: "everyone",
@@ -104,5 +202,8 @@ export default {
     // An operator erasing an organization, with requests signed by
     // ERASURE_SECRET; 404 while it is unset (src/server/features/erasure).
     { path: "/internal/erase-organization", methods: ["POST"] },
+    // VisCRM's write API for the sibling apps; every call carries its app's
+    // key, which names the organization (src/server/features/vis/visApiRoute.ts).
+    { path: "/api/vis/*", methods: ["GET", "POST"] },
   ],
 } as const;

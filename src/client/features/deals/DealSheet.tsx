@@ -11,6 +11,7 @@ import {
 } from "@/client/features/deals/dealFormat";
 import { dealQueryOptions } from "@/client/features/deals/dealQueries";
 import { useDealMutations } from "@/client/features/deals/useDealMutations";
+import { DealLead } from "@/client/features/vis/DealLead";
 import {
   LocalDay,
   RelativeTime,
@@ -114,6 +115,7 @@ export function DealSheet({ dealId }: { dealId: string }) {
       lists={
         deal
           ? [
+              { value: "lead", content: <DealLead dealId={deal.id} /> },
               {
                 value: "contacts",
                 content: <DealContacts deal={deal} mutations={mutations} />,
