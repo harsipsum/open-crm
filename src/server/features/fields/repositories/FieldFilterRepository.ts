@@ -13,6 +13,7 @@ import {
 import { db } from "@/db";
 import { fieldValue } from "@/db/schema";
 import { records } from "@/server/features/fields/repositories/FieldValueRepository";
+import { containsCondition } from "@/server/features/records/listQuery";
 import type { FieldEntity, FieldType } from "@/shared/crm-enums";
 import type { FieldFilter } from "@/types/schemas/fields";
 
@@ -26,10 +27,6 @@ const TEXT_TYPES = new Set<FieldType>([
   "EMAIL",
   "PHONE",
 ]);
-
-function escapeLike(value: string) {
-  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
-}
 
 function nextDay(day: string): string {
   const date = new Date(`${day}T00:00:00.000Z`);
@@ -68,9 +65,7 @@ function filterCondition(
     case "contains":
       if (!TEXT_TYPES.has(field.type)) return null;
       return exists(
-        valueWhere(
-          sql`lower(${fieldValue.text}) like lower(${`%${escapeLike(filter.value)}%`}) escape '\\'`,
-        ),
+        valueWhere(containsCondition(fieldValue.text, filter.value)),
       );
     case "equals":
       if (!TEXT_TYPES.has(field.type)) return null;

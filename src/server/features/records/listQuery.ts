@@ -87,24 +87,33 @@ function escapeLike(value: string) {
   return value.replace(/[\\%_]/g, (char) => `\\${char}`);
 }
 
+/** D1 refuses a LIKE pattern over 50 bytes (an "Internal error" to the caller). */
+const D1_LIKE_PATTERN_BYTES = 50;
+
 /**
- * A case-insensitive "contains" over any of `columns` (or expressions).
- * Both sides are lowered in SQL: `lower()` is ASCII only on SQLite, so there
- * accented capitals match only themselves, which lowering the term in
- * JavaScript would break.
+ * Whether `column` contains `term`, case-insensitively. Both sides are
+ * lowered in SQL: `lower()` is ASCII only on SQLite, so there accented
+ * capitals match only themselves, which lowering the term in JavaScript
+ * would break. A term whose `%…%` pattern would pass D1's 50-byte LIKE limit
+ * is matched with instr() instead: the same substring test (a leading `%`
+ * uses no index either way), with no pattern to limit.
  */
+export function containsCondition(column: SQLWrapper, term: string): SQL {
+  const pattern = `%${escapeLike(term)}%`;
+  if (new TextEncoder().encode(pattern).byteLength > D1_LIKE_PATTERN_BYTES) {
+    return sql`instr(lower(${column}), lower(${term})) > 0`;
+  }
+  return sql`lower(${column}) like lower(${pattern}) escape '\\'`;
+}
+
+/** A case-insensitive "contains" over any of `columns` (or expressions). */
 export function searchCondition(
   q: string,
   columns: SQLWrapper[],
 ): SQL | undefined {
   const term = q.trim();
   if (!term) return undefined;
-  const pattern = `%${escapeLike(term)}%`;
-  return or(
-    ...columns.map(
-      (column) => sql`lower(${column}) like lower(${pattern}) escape '\\'`,
-    ),
-  );
+  return or(...columns.map((column) => containsCondition(column, term)));
 }
 
 /** The owner filter: the chosen owners, and `UNASSIGNED` for nobody's. */
