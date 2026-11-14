@@ -101,19 +101,25 @@ async function tick(organizationId: string, now: string) {
     ) {
       continue;
     }
-    const found = await DealService.getDeal(organizationId, late.dealId);
-    await ActivityRepository.insert({
-      organizationId,
-      type: "TASK",
-      subject: `Escalated: nobody called ${found.name} in ${SDR_ESCALATE_HOURS} h`,
-      body: `The first call was due ${late.dueAt}. Call now or reassign.`,
-      occurredAt: now,
-      dueAt: now,
-      companyId: found.company.id,
-      contactId: null,
-      dealId: late.dealId,
-      createdById: to,
-    });
+    try {
+      const found = await DealService.getDeal(organizationId, late.dealId);
+      await ActivityRepository.insert({
+        organizationId,
+        type: "TASK",
+        subject: `Escalated: nobody called ${found.name} in ${SDR_ESCALATE_HOURS} h`,
+        body: `The first call was due ${late.dueAt}. Call now or reassign.`,
+        occurredAt: now,
+        dueAt: now,
+        companyId: found.company.id,
+        contactId: null,
+        dealId: late.dealId,
+        createdById: to,
+      });
+    } catch (error) {
+      // No task, no escalation: the timer opens again for the next tick.
+      await VisWorkRepository.reopenEscalation(organizationId, late.id);
+      throw error;
+    }
     escalated += 1;
     console.log("[vis] sdr escalated", {
       organizationId,

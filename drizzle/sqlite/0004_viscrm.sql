@@ -57,6 +57,7 @@ CREATE TABLE `deal_attribution` (
 	`fit_score` integer NOT NULL,
 	`fit_reasons` text NOT NULL,
 	`created_by_app` text,
+	`external_ref` text,
 	`created_at` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
 	FOREIGN KEY (`deal_id`) REFERENCES `deal`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`organization_id`) REFERENCES `organization`(`id`) ON UPDATE no action ON DELETE cascade,
@@ -64,6 +65,7 @@ CREATE TABLE `deal_attribution` (
 );
 --> statement-breakpoint
 CREATE INDEX `deal_attribution_organization_source_idx` ON `deal_attribution` (`organization_id`,`source`);--> statement-breakpoint
+CREATE UNIQUE INDEX `deal_attribution_app_ref_uidx` ON `deal_attribution` (`organization_id`,`created_by_app`,`external_ref`) WHERE "deal_attribution"."external_ref" is not null;--> statement-breakpoint
 CREATE TABLE `deal_order` (
 	`deal_id` text PRIMARY KEY NOT NULL,
 	`organization_id` text NOT NULL,

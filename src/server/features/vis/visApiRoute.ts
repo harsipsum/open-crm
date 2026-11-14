@@ -7,6 +7,7 @@ import { asAppError } from "@/server/lib/errors";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 import type { VisScope } from "@/shared/vis";
 import {
+  consentSchema,
   leadSchema,
   noteSchema,
   orderSchema,
@@ -25,13 +26,14 @@ import {
 //   POST /api/vis/v1/deals/<id>/stage         stage:write
 //   POST /api/vis/v1/deals/<id>/order         stage:write
 //   POST /api/vis/v1/deals/<id>/research      research:write
+//   POST /api/vis/v1/deals/<id>/consent       leads:write
 //
 // Bodies are JSON, at most 64 KB, checked by the same schemas the tools use.
 
 const VIS_API_PREFIX = "/api/vis/v1/";
 const MAX_BODY_BYTES = 64 * 1024;
 const DEAL_PATH =
-  /^\/api\/vis\/v1\/deals\/([^/]+)(?:\/(notes|stage|order|research))?$/;
+  /^\/api\/vis\/v1\/deals\/([^/]+)(?:\/(notes|stage|order|research|consent))?$/;
 
 const STATUS: Record<string, number> = {
   UNAUTHENTICATED: 401,
@@ -57,10 +59,17 @@ async function bodyOf<S extends z.ZodType>(
   schema: S,
   extra: Record<string, unknown> = {},
 ): Promise<z.output<S> | Response> {
-  const text = await request.text();
-  if (text.length > MAX_BODY_BYTES) {
+  // Refused before it's read when it says it's too big, and measured in
+  // bytes (not characters) when it doesn't.
+  const declared = Number(request.headers.get("content-length") ?? "0");
+  if (declared > MAX_BODY_BYTES) {
     return json(413, { error: "Body over 64 KB." });
   }
+  const bytes = new Uint8Array(await request.arrayBuffer());
+  if (bytes.byteLength > MAX_BODY_BYTES) {
+    return json(413, { error: "Body over 64 KB." });
+  }
+  const text = new TextDecoder().decode(bytes);
   let raw: unknown;
   try {
     raw = text ? JSON.parse(text) : {};
@@ -139,6 +148,15 @@ async function route(request: Request): Promise<Response> {
     const input = await bodyOf(request, orderSchema, { dealId });
     if (input instanceof Response) return input;
     return json(200, await VisDealService.setOrder(who.organizationId, input));
+  }
+  if (action === "consent") {
+    const who = await caller(request, "leads:write");
+    const input = await bodyOf(request, consentSchema, { dealId });
+    if (input instanceof Response) return input;
+    return json(
+      200,
+      await VisDealService.setConsent(who.organizationId, input),
+    );
   }
   if (action === "research") {
     const who = await caller(request, "research:write");

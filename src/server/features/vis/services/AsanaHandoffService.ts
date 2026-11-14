@@ -142,8 +142,14 @@ function mapFields(
         custom[field.gid] = option(value);
         continue;
       }
-      if (field.resource_subtype === "multi_enum" && Array.isArray(value)) {
-        custom[field.gid] = value.map(option).filter(Boolean);
+      // Every value must match an option; otherwise the line goes in the
+      // text, so nothing is dropped.
+      if (
+        field.resource_subtype === "multi_enum" &&
+        Array.isArray(value) &&
+        value.every((label) => option(label))
+      ) {
+        custom[field.gid] = value.map(option);
         continue;
       }
     }
@@ -161,6 +167,10 @@ async function handOff(
   const token = await getOptionalEnvValue("ASANA_TOKEN");
   const projectGid = await getOptionalEnvValue("ASANA_PROJECT_GID");
   if (!token || !projectGid) return null;
+  // Only this organization's won deal is ever claimed: getDeal refuses
+  // another organization's id before anything is written.
+  const deal = await DealService.getDeal(organizationId, dealId);
+  if (deal.stage !== "CLOSED_WON") return null;
   if (!(await VisRepository.claimHandoff(organizationId, dealId, projectGid))) {
     return null;
   }
@@ -258,7 +268,13 @@ async function retry(
 ) {
   const found = await VisRepository.handoff(organizationId, dealId);
   if (found?.taskGid) return found.taskGid;
-  await VisRepository.releaseHandoff(organizationId, dealId);
+  // Only a handoff that failed is let go; one still in flight stays put.
+  if (
+    found &&
+    !(await VisRepository.releaseFailedHandoff(organizationId, dealId))
+  ) {
+    return null;
+  }
   return handOff(organizationId, dealId, origin);
 }
 

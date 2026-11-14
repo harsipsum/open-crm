@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "af5738fe-19b8-40a4-8438-47464c0c15fe",
+  "id": "0ee7bb6b-cf53-4f80-b9b1-2037f3939dad",
   "prevId": "d3289235-edb6-45b4-a706-775e72dc0d34",
   "tables": {
     "member": {
@@ -8861,6 +8861,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "external_ref": {
+          "name": "external_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -8878,6 +8885,16 @@
             "source"
           ],
           "isUnique": false
+        },
+        "deal_attribution_app_ref_uidx": {
+          "name": "deal_attribution_app_ref_uidx",
+          "columns": [
+            "organization_id",
+            "created_by_app",
+            "external_ref"
+          ],
+          "isUnique": true,
+          "where": "\"deal_attribution\".\"external_ref\" is not null"
         }
       },
       "foreignKeys": {

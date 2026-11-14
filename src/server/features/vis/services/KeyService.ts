@@ -1,4 +1,4 @@
-import { VisRepository } from "@/server/features/vis/repositories/VisRepository";
+import { VisKeyRepository } from "@/server/features/vis/repositories/VisKeyRepository";
 import { AppError } from "@/server/lib/errors";
 import { APP_SCOPES, type VisApp, type VisScope } from "@/shared/vis";
 
@@ -35,22 +35,24 @@ async function mint(
 ) {
   const secret = `vck_${app.toLowerCase()}_${base64Url(crypto.getRandomValues(new Uint8Array(KEY_BYTES)))}`;
   const now = new Date().toISOString();
-  await VisRepository.revokeKey(organizationId, app, now);
-  await VisRepository.insertKey({
-    id: crypto.randomUUID(),
-    organizationId,
-    app,
-    label: `${app} write key`,
-    keyHash: await sha256Hex(secret),
-    keyPrefix: secret.slice(0, 16),
-    createdById,
-  });
+  await VisKeyRepository.rotateKey(
+    {
+      id: crypto.randomUUID(),
+      organizationId,
+      app,
+      label: `${app} write key`,
+      keyHash: await sha256Hex(secret),
+      keyPrefix: secret.slice(0, 16),
+      createdById,
+    },
+    now,
+  );
   console.log("[vis] app key minted", { organizationId, app });
   return { app, key: secret, scopes: [...APP_SCOPES[app]] };
 }
 
 async function revoke(organizationId: string, app: VisApp) {
-  const revoked = await VisRepository.revokeKey(
+  const revoked = await VisKeyRepository.revokeKey(
     organizationId,
     app,
     new Date().toISOString(),
@@ -60,7 +62,7 @@ async function revoke(organizationId: string, app: VisApp) {
 }
 
 function list(organizationId: string) {
-  return VisRepository.listKeys(organizationId);
+  return VisKeyRepository.listKeys(organizationId);
 }
 
 type KeyCaller = { organizationId: string; app: VisApp };
@@ -77,7 +79,7 @@ async function authenticate(
   if (!presented?.startsWith("vck_")) {
     throw new AppError("UNAUTHENTICATED", "A VisCRM app key is required.");
   }
-  const found = await VisRepository.keyByHash(await sha256Hex(presented));
+  const found = await VisKeyRepository.keyByHash(await sha256Hex(presented));
   if (
     !found ||
     (pinnedOrganizationId && found.organizationId !== pinnedOrganizationId)
@@ -90,7 +92,7 @@ async function authenticate(
       `The ${found.app} key can't ${scope.replace(":", " ")}.`,
     );
   }
-  await VisRepository.touchKey(
+  await VisKeyRepository.touchKey(
     found.organizationId,
     found.id,
     new Date().toISOString(),

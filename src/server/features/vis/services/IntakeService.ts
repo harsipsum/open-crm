@@ -1,7 +1,6 @@
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import { ActivityRepository } from "@/server/features/activities/repositories/ActivityRepository";
 import { CompanyService } from "@/server/features/companies/services/CompanyService";
-import { ContactRepository } from "@/server/features/contacts/repositories/ContactRepository";
 import { ContactService } from "@/server/features/contacts/services/ContactService";
 import { DealContactRepository } from "@/server/features/deals/repositories/DealContactRepository";
 import { PipelineRepository } from "@/server/features/deals/repositories/PipelineRepository";
@@ -86,7 +85,11 @@ async function companyFor(
   organizationId: string,
   input: LeadInput,
   ownerId: string,
+  known: { companyId: string | null } | null,
 ) {
+  // A person the CRM already knows stays at their own company: the deal
+  // goes there, never to a second company a form named.
+  if (known?.companyId) return known.companyId;
   const domain = normalizeDomain(input.company.domain ?? "") || null;
   if (domain) {
     const found = await VisRepository.liveCompanyByDomain(
@@ -108,15 +111,10 @@ async function contactFor(
   input: LeadInput,
   companyId: string,
   ownerId: string,
+  known: { id: string } | null,
 ) {
+  if (known) return known.id;
   const email = input.person.email?.trim().toLowerCase();
-  if (email) {
-    const existing = await ContactRepository.findLiveByEmail(
-      organizationId,
-      email,
-    );
-    if (existing) return existing.id;
-  }
   const created = await ContactService.createContact(organizationId, {
     firstName: input.person.firstName,
     lastName: input.person.lastName,
@@ -136,10 +134,51 @@ async function createLead(
   app: VisApp | null,
 ) {
   await WorkspaceService.requireDealsEnabled(organizationId);
+  // The same submission sent again (a retry after a lost answer) gets the
+  // deal it already made, not a second one.
+  if (input.externalRef) {
+    const earlier = await VisRepository.attributionByRef(
+      organizationId,
+      app,
+      input.externalRef,
+    );
+    if (earlier) {
+      return {
+        dealId: earlier.dealId,
+        companyId: null,
+        contactId: earlier.contactId,
+        ownerId: null,
+        fitScore: earlier.fitScore,
+        duplicate: true,
+      };
+    }
+  }
+  const email = input.person.email?.trim().toLowerCase() ?? null;
+  const domain =
+    normalizeDomain(input.company.domain ?? "") ||
+    (email ? normalizeDomain(email.split("@")[1] ?? "") : "") ||
+    null;
+  // Someone deleted forever doesn't come back by themselves: a person adds
+  // them by hand if they should.
+  if (await VisRepository.isSuppressed(organizationId, email, domain)) {
+    throw new AppError(
+      "CONFLICT",
+      "This person or domain was deleted from the CRM for good; only a person can add them back.",
+    );
+  }
   const pipeline = await requirePipeline(organizationId);
   const ownerId = await ownerFor(organizationId, input.ownerEmail);
-  const companyId = await companyFor(organizationId, input, ownerId);
-  const contactId = await contactFor(organizationId, input, companyId, ownerId);
+  const known = email
+    ? await VisRepository.liveContactByEmail(organizationId, email)
+    : null;
+  const companyId = await companyFor(organizationId, input, ownerId, known);
+  const contactId = await contactFor(
+    organizationId,
+    input,
+    companyId,
+    ownerId,
+    known,
+  );
   const productLabel = input.product ? PRODUCT_LABELS[input.product] : "Lead";
   const created = await DealService.createDeal(organizationId, {
     name: input.dealName ?? `${input.company.name}: ${productLabel}`,
@@ -194,6 +233,7 @@ async function createLead(
     contactId,
     ownerId,
     fitScore: row.fitScore,
+    duplicate: false,
   };
 }
 
@@ -235,6 +275,7 @@ function attributionRow(input: LeadInput, app: VisApp | null, now: string) {
     fitScore: fit.score,
     fitReasons: fit.reasons,
     createdByApp: app,
+    externalRef: input.externalRef ?? null,
   };
 }
 

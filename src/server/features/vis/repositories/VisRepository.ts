@@ -1,4 +1,14 @@
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  isNotNull,
+  isNull,
+  or,
+  sql,
+} from "drizzle-orm";
 import { sortBy } from "remeda";
 import { db } from "@/db";
 import {
@@ -11,71 +21,16 @@ import {
   dealOrder,
   pipeline,
   pipelineStage,
-  visAppKey,
+  suppressedContact,
+  suppressedDomain,
 } from "@/db/schema";
 import type { VisApp } from "@/shared/vis";
+
 // Every read and write takes the organization and filters by it, including
 // lookups by id (AGENTS.md, Tenancy). The one exception is `keyByHash`: an
 // incoming key names its organization, so the hash is the lookup.
 
 type NewAttribution = typeof dealAttribution.$inferInsert;
-
-// --- App keys ---------------------------------------------------------------
-
-async function insertKey(values: typeof visAppKey.$inferInsert) {
-  await db.insert(visAppKey).values(values);
-}
-
-/** The live key with this hash, whoever's it is: the key names its org. */
-async function keyByHash(keyHash: string) {
-  const [found] = await db
-    .select()
-    .from(visAppKey)
-    .where(and(eq(visAppKey.keyHash, keyHash), isNull(visAppKey.revokedAt)))
-    .limit(1);
-  return found ?? null;
-}
-
-async function touchKey(organizationId: string, id: string, at: string) {
-  await db
-    .update(visAppKey)
-    .set({ lastUsedAt: at })
-    .where(
-      and(eq(visAppKey.organizationId, organizationId), eq(visAppKey.id, id)),
-    );
-}
-
-async function listKeys(organizationId: string) {
-  return db
-    .select({
-      id: visAppKey.id,
-      app: visAppKey.app,
-      label: visAppKey.label,
-      keyPrefix: visAppKey.keyPrefix,
-      lastUsedAt: visAppKey.lastUsedAt,
-      revokedAt: visAppKey.revokedAt,
-      createdAt: visAppKey.createdAt,
-    })
-    .from(visAppKey)
-    .where(eq(visAppKey.organizationId, organizationId))
-    .orderBy(desc(visAppKey.createdAt));
-}
-
-/** Revokes the app's live key; true when there was one. */
-async function revokeKey(organizationId: string, app: VisApp, at: string) {
-  const revoked = await db
-    .update(visAppKey)
-    .set({ revokedAt: at })
-    .where(
-      and(
-        eq(visAppKey.organizationId, organizationId),
-        eq(visAppKey.app, app),
-        isNull(visAppKey.revokedAt),
-      ),
-    )
-    .returning({ id: visAppKey.id });
-  return revoked.length > 0;
-}
 
 // --- Records the intake reuses ---------------------------------------------
 
@@ -88,6 +43,48 @@ async function liveCompanyByDomain(organizationId: string, domain: string) {
         eq(company.organizationId, organizationId),
         eq(company.domain, domain),
         isNull(company.archivedAt),
+      ),
+    )
+    .limit(1);
+  return found ?? null;
+}
+
+/** The live contact with this email, and the company they work at. */
+async function liveContactByEmail(organizationId: string, email: string) {
+  const [found] = await db
+    .select({ id: contact.id, companyId: contact.companyId })
+    .from(contact)
+    .where(
+      and(
+        eq(contact.organizationId, organizationId),
+        eq(contact.email, email),
+        isNull(contact.archivedAt),
+      ),
+    )
+    .limit(1);
+  return found ?? null;
+}
+
+/** The lead an app already sent under this reference, if any. */
+async function attributionByRef(
+  organizationId: string,
+  app: VisApp | null,
+  externalRef: string,
+) {
+  const [found] = await db
+    .select({
+      dealId: dealAttribution.dealId,
+      contactId: dealAttribution.contactId,
+      fitScore: dealAttribution.fitScore,
+    })
+    .from(dealAttribution)
+    .where(
+      and(
+        eq(dealAttribution.organizationId, organizationId),
+        eq(dealAttribution.externalRef, externalRef),
+        app
+          ? eq(dealAttribution.createdByApp, app)
+          : isNull(dealAttribution.createdByApp),
       ),
     )
     .limit(1);
@@ -165,8 +162,21 @@ async function updateAttribution(
  * The deals VisCRM tracks (those its intake created), with where each sits
  * in its pipeline: what the tick walks.
  */
-async function trackedDeals(organizationId: string) {
-  return db
+/** Deals closed longer ago than this are done: the tick leaves them alone. */
+const SETTLED_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+/** At most this many deals a tick, newest first. */
+const TICK_LIMIT = 500;
+
+/**
+ * VisCRM's deals. With `now` (the tick), only those still in play: open,
+ * or closed within the last 7 days, at most 500, newest first, so a tick's
+ * work stays bounded however long the history grows.
+ */
+async function trackedDeals(organizationId: string, now?: string) {
+  const cutoff = now
+    ? new Date(Date.parse(now) - SETTLED_AFTER_MS).toISOString()
+    : null;
+  const query = db
     .select({
       id: deal.id,
       name: deal.name,
@@ -189,8 +199,14 @@ async function trackedDeals(organizationId: string) {
         eq(dealAttribution.organizationId, organizationId),
         eq(deal.organizationId, organizationId),
         isNull(deal.archivedAt),
+        cutoff
+          ? or(isNull(deal.closedAt), gte(deal.closedAt, cutoff))
+          : undefined,
       ),
     );
+  return cutoff
+    ? query.orderBy(desc(dealAttribution.createdAt)).limit(TICK_LIMIT)
+    : query;
 }
 
 /** The organizations with tracked deals: the ones a tick has work for. */
@@ -275,15 +291,56 @@ async function finishHandoff(
 }
 
 /** A failed handoff is let go, so the next tick tries again. */
-async function releaseHandoff(organizationId: string, dealId: string) {
-  await db
+/**
+ * Lets go of a failed handoff so it can be tried again: only one that
+ * recorded an error and made no task, never one still in flight.
+ */
+async function releaseFailedHandoff(organizationId: string, dealId: string) {
+  const released = await db
     .delete(asanaHandoff)
     .where(
       and(
         eq(asanaHandoff.organizationId, organizationId),
         eq(asanaHandoff.dealId, dealId),
+        isNull(asanaHandoff.taskGid),
+        isNotNull(asanaHandoff.error),
       ),
-    );
+    )
+    .returning({ dealId: asanaHandoff.dealId });
+  return released.length > 0;
+}
+
+/** Whether a person deleted forever (or their domain) may not come back by itself. */
+async function isSuppressed(
+  organizationId: string,
+  email: string | null,
+  domain: string | null,
+) {
+  const [person] = email
+    ? await db
+        .select({ email: suppressedContact.email })
+        .from(suppressedContact)
+        .where(
+          and(
+            eq(suppressedContact.organizationId, organizationId),
+            eq(suppressedContact.email, email),
+          ),
+        )
+        .limit(1)
+    : [];
+  const [place] = domain
+    ? await db
+        .select({ domain: suppressedDomain.domain })
+        .from(suppressedDomain)
+        .where(
+          and(
+            eq(suppressedDomain.organizationId, organizationId),
+            eq(suppressedDomain.domain, domain),
+          ),
+        )
+        .limit(1)
+    : [];
+  return Boolean(person || place);
 }
 
 async function handoff(organizationId: string, dealId: string) {
@@ -330,12 +387,9 @@ async function dealPeople(
 }
 
 export const VisRepository = {
-  insertKey,
-  keyByHash,
-  touchKey,
-  listKeys,
-  revokeKey,
   liveCompanyByDomain,
+  liveContactByEmail,
+  attributionByRef,
   pipelineByName,
   insertAttribution,
   attribution,
@@ -346,7 +400,8 @@ export const VisRepository = {
   order,
   claimHandoff,
   finishHandoff,
-  releaseHandoff,
+  releaseFailedHandoff,
   handoff,
   dealPeople,
+  isSuppressed,
 };

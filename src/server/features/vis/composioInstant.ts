@@ -75,7 +75,19 @@ export async function runInstant(
   }
   const answer = executeAnswer.parse(JSON.parse(text));
   const amount = Number(answer.instant_charge?.amount ?? 0);
-  return { data: answer.data, costUsd: Number.isFinite(amount) ? amount : 0 };
+  // A 200 can still say the tool failed: that is a failure (with whatever
+  // it cost), never an empty "not found".
+  const failed =
+    answer.successful === false || answer.error
+      ? typeof answer.error === "string"
+        ? answer.error.slice(0, 300)
+        : "The provider reported a failure."
+      : null;
+  return {
+    data: answer.data,
+    costUsd: Number.isFinite(amount) ? amount : 0,
+    failed,
+  };
 }
 
 const companyData = z

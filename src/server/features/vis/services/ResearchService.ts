@@ -89,25 +89,34 @@ async function runRequest(
     lead?.contactId ?? null,
   );
   const domain = found.company.domain;
+  // Claimed before any paid call: a retry overlapping the tick (or another
+  // retry) finds it running and pays nothing.
+  if (
+    !(await VisWorkRepository.claimResearchRun(organizationId, dealId, kind))
+  ) {
+    return false;
+  }
   try {
     if (kind === "COMPANY") {
       const args = domain
         ? { company_domain: domain }
         : { company_name: found.company.name };
       const answer = await runInstant(organizationId, COMPANY_TOOL, args);
-      const company = readCompany(answer.data);
+      const company = answer.failed ? null : readCompany(answer.data);
       return finish(organizationId, dealId, kind, {
-        status: company ? "DONE" : "NOT_FOUND",
+        status: answer.failed ? "FAILED" : company ? "DONE" : "NOT_FOUND",
         provider: "composio-instant:leadmagic",
         tool: COMPANY_TOOL,
         costUsd: answer.costUsd,
         summary: company ? companyLine(company) : "No company match.",
         data: answer.data,
-        error: null,
+        error: answer.failed,
         filledByApp: null,
       });
     }
-    const lead0 = people[0];
+    // The attributed lead, whose research it is.
+    const lead0 =
+      people.find((person) => person.id === lead?.contactId) ?? people[0];
     const answer = await runInstant(organizationId, PERSON_TOOL, {
       person: {
         first_name: lead0?.firstName,
@@ -118,27 +127,29 @@ async function runRequest(
       },
       enrich_mobile: true,
     });
-    const person = readPerson(answer.data);
+    const person = answer.failed ? null : readPerson(answer.data);
     return finish(organizationId, dealId, kind, {
-      status: person ? "DONE" : "NOT_FOUND",
+      status: answer.failed ? "FAILED" : person ? "DONE" : "NOT_FOUND",
       provider: "composio-instant:prospeo",
       tool: PERSON_TOOL,
       costUsd: answer.costUsd,
       summary: person ? personLine(person) : "No person match (free).",
       data: answer.data,
-      error: null,
+      error: answer.failed,
       filledByApp: null,
     });
   } catch (error) {
-    if (error instanceof ProviderWait) {
-      await VisWorkRepository.noteResearchWait(
-        organizationId,
-        dealId,
-        kind,
-        error.message,
-      );
-      return false;
-    }
+    // The claim is released with the reason; it waits for the relay or a
+    // person, never a loop.
+    await VisWorkRepository.noteResearchWait(
+      organizationId,
+      dealId,
+      kind,
+      error instanceof ProviderWait
+        ? error.message
+        : "The research call failed; ask again from the deal.",
+    );
+    if (error instanceof ProviderWait) return false;
     throw error;
   }
 }

@@ -97,6 +97,7 @@ export const FRESHWORKS_PRODUCTS = [
 export type FreshworksProduct = (typeof FRESHWORKS_PRODUCTS)[number];
 
 export const CONSENT_STATES = ["GRANTED", "DENIED", "UNKNOWN"] as const;
+export type ConsentState = (typeof CONSENT_STATES)[number];
 
 /**
  * Vistar's HubSpot Sales Pipeline (portal 9344866), read 15 Nov 2026 ~00:30
@@ -151,6 +152,7 @@ export type ConversionPlatform = (typeof CONVERSION_PLATFORMS)[number];
 export const CONVERSION_EVENTS = ["QUALIFIED_LEAD", "PURCHASE"] as const;
 export type ConversionEventName = (typeof CONVERSION_EVENTS)[number];
 export const CONVERSION_STATUSES = [
+  "PENDING",
   "DRY_RUN",
   "SENT",
   "SKIPPED",

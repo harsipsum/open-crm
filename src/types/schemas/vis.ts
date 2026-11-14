@@ -55,6 +55,8 @@ export const leadSchema = z
         users: z.number().int().min(0).max(1_000_000).optional(),
       })
       .optional(),
+    /** The app's own id for this submission; sent again, it returns the same deal. */
+    externalRef: short(200).optional(),
     dealName: short(200).optional(),
     amount: z.number().min(0).max(999_999_999_999.99).optional(),
     currency: currencyCodeSchema.optional(),
@@ -108,6 +110,10 @@ export const orderSchema = z
   })
   .strict();
 export type OrderInput = z.infer<typeof orderSchema>;
+
+export const consentSchema = z
+  .object({ dealId: z.string().min(1), consent: z.enum(CONSENT_STATES) })
+  .strict();
 
 export const appSchema = z.object({ app: z.enum(VIS_APPS) }).strict();
 export const dealIdSchema = z.object({ dealId: z.string().min(1) }).strict();

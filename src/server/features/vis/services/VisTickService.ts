@@ -33,7 +33,7 @@ async function tickOrganization(
       (stage) =>
         stage.name.toLowerCase() === STAGE_ROLES.qualified.toLowerCase(),
     )?.position ?? Number.POSITIVE_INFINITY;
-  for (const row of await VisRepository.trackedDeals(organizationId)) {
+  for (const row of await VisRepository.trackedDeals(organizationId, now)) {
     summary.deals += 1;
     try {
       const won = row.stageKind === "DONE";
@@ -51,7 +51,10 @@ async function tickOrganization(
         row.id,
         lead.contactId,
       );
-      const person = people[0] ?? null;
+      // Only the person whose consent the lead recorded: anyone else on the
+      // deal never has their details sent.
+      const person =
+        people.find((candidate) => candidate.id === lead.contactId) ?? null;
       await OfflineConversionService.emit(organizationId, {
         dealId: row.id,
         event: "QUALIFIED_LEAD",

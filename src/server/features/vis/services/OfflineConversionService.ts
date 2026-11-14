@@ -240,32 +240,38 @@ async function deliver(
   const live = (await getOptionalEnvValue("VIS_CONVERSIONS_LIVE")) === "1";
   const endpoint = live ? await endpointFor(platform) : null;
   if (!endpoint) return { status: "DRY_RUN", response: null };
-  const response = await fetch(endpoint.url, {
-    method: "POST",
-    headers: { "content-type": "application/json", ...endpoint.headers },
-    body: JSON.stringify(body),
-  });
-  const text = (await response.text()).slice(0, 1000);
-  return { status: response.ok ? "SENT" : "FAILED", response: text };
+  try {
+    const response = await fetch(endpoint.url, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...endpoint.headers },
+      body: JSON.stringify(body),
+    });
+    const text = (await response.text()).slice(0, 1000);
+    return { status: response.ok ? "SENT" : "FAILED", response: text };
+  } catch (error) {
+    // Recorded, not thrown: the next tick doesn't send it again, and the
+    // deal's other platforms and its handoff still run.
+    return {
+      status: "FAILED",
+      response: error instanceof Error ? error.name : "network error",
+    };
+  }
 }
 
-/** Records (and, when live, sends) the event on every platform, once each. */
+/**
+ * Records (and, when live, sends) the event on every platform, once each.
+ * The event is claimed (PENDING) before anything is sent, so two ticks can't
+ * both send it; one left PENDING by a Worker that stopped mid-send is shown
+ * as such and never sent again by itself.
+ */
 async function emit(organizationId: string, input: ConversionInput) {
-  const already = await VisWorkRepository.conversionKeys(
-    organizationId,
-    input.dealId,
-  );
   let recorded = 0;
   for (const platform of CONVERSION_PLATFORMS) {
-    if (already.has(`${platform}:${input.event}`)) continue;
     const built =
       input.lead.consent === "DENIED"
         ? null
         : await payloadFor(platform, input);
-    const outcome = built
-      ? await deliver(platform, built.body)
-      : { status: "SKIPPED" as const, response: null };
-    const inserted = await VisWorkRepository.insertConversion({
+    const claimed = await VisWorkRepository.insertConversion({
       organizationId,
       dealId: input.dealId,
       platform,
@@ -274,16 +280,26 @@ async function emit(organizationId: string, input: ConversionInput) {
       value: input.event === "PURCHASE" ? input.value : null,
       currency: input.event === "PURCHASE" ? input.currency : null,
       clickId: built?.clickId ?? null,
-      status: outcome.status,
+      status: built ? "PENDING" : "SKIPPED",
       payload: built?.body ?? {
         skipped:
           input.lead.consent === "DENIED"
             ? "Consent denied"
             : `No ${platform.toLowerCase()} click id or consented identifier`,
       },
-      response: outcome.response,
+      response: null,
     });
-    if (inserted) recorded += 1;
+    if (!claimed) continue;
+    recorded += 1;
+    if (!built) continue;
+    const outcome = await deliver(platform, built.body);
+    await VisWorkRepository.finishConversion(
+      organizationId,
+      input.dealId,
+      platform,
+      input.event,
+      outcome,
+    );
   }
   return recorded;
 }

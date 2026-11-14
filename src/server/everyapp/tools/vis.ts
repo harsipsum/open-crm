@@ -11,6 +11,7 @@ import { VisTickService } from "@/server/features/vis/services/VisTickService";
 import { VIS_APPS, VISTAR_PIPELINE } from "@/shared/vis";
 import {
   appSchema,
+  consentSchema,
   dealIdSchema,
   leadSchema,
   orderSchema,
@@ -107,6 +108,16 @@ export const visTools = {
     handler: async (input, context) => ({
       order: await VisDealService.setOrder(context.organizationId, input),
     }),
+  }),
+
+  vis_set_consent: dealTool({
+    description:
+      "Change a lead's consent after intake (withdrawn, or given later). Conversions not yet sent read it fresh: without consent they carry click ids only; denied sends nothing.",
+    risk: "write",
+    input: consentSchema,
+    output: anyOutput,
+    handler: (input, context) =>
+      VisDealService.setConsent(context.organizationId, input),
   }),
 
   get_deal_lead: dealTool({

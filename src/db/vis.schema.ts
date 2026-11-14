@@ -111,6 +111,9 @@ export const dealAttribution = sqliteTable(
       .$type<string[]>()
       .notNull(),
     createdByApp: text("created_by_app", { enum: VIS_APPS }),
+    // The sending app's own id for this submission: sent again, it finds
+    // this lead instead of making a second one.
+    externalRef: text("external_ref"),
     createdAt: createdAt(),
   },
   (table) => [
@@ -118,6 +121,9 @@ export const dealAttribution = sqliteTable(
       table.organizationId,
       table.source,
     ),
+    uniqueIndex("deal_attribution_app_ref_uidx")
+      .on(table.organizationId, table.createdByApp, table.externalRef)
+      .where(sql`${table.externalRef} is not null`),
   ],
 );
 

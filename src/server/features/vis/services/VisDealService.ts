@@ -2,6 +2,9 @@ import { z } from "zod";
 import { DealService } from "@/server/features/deals/services/DealService";
 import { VisRepository } from "@/server/features/vis/repositories/VisRepository";
 import { VisWorkRepository } from "@/server/features/vis/repositories/VisWorkRepository";
+import { AppError } from "@/server/lib/errors";
+import { roundMoney } from "@/shared/currency";
+import type { ConsentState } from "@/shared/vis";
 import type { OrderInput } from "@/types/schemas/vis";
 
 // A deal as VisCRM sees it: where the lead came from, its research and what
@@ -68,10 +71,37 @@ async function view(organizationId: string, dealId: string) {
 
 /** What was sold, from the accepted proposal: only what is given changes. */
 async function setOrder(organizationId: string, input: OrderInput) {
-  await DealService.getDeal(organizationId, input.dealId);
+  const found = await DealService.getDeal(organizationId, input.dealId);
   const { dealId, ...patch } = input;
-  await VisRepository.upsertOrder(organizationId, dealId, patch);
+  // Money is rounded to the deal currency's minor unit, as deal amounts are.
+  const round = (value: number | undefined) =>
+    value === undefined ? undefined : roundMoney(value, found.currency);
+  await VisRepository.upsertOrder(organizationId, dealId, {
+    ...patch,
+    licenseRevenue: round(patch.licenseRevenue),
+    implementationValue: round(patch.implementationValue),
+  });
   return VisRepository.order(organizationId, dealId);
 }
 
-export const VisDealService = { view, setOrder };
+/**
+ * The lead's consent, changed after intake (withdrawn, or given later). The
+ * tick reads it fresh before every conversion, so a withdrawal stops any
+ * event not yet sent from carrying the person's details.
+ */
+async function setConsent(
+  organizationId: string,
+  input: { dealId: string; consent: ConsentState },
+) {
+  const lead = await VisRepository.attribution(organizationId, input.dealId);
+  if (!lead) {
+    throw new AppError("NOT_FOUND", "This deal has no VisCRM lead.");
+  }
+  await VisRepository.updateAttribution(organizationId, input.dealId, {
+    consent: input.consent,
+    consentAt: new Date().toISOString(),
+  });
+  return { dealId: input.dealId, consent: input.consent };
+}
+
+export const VisDealService = { view, setOrder, setConsent };

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { activity, conversionEvent, dealResearch, sdrTimer } from "@/db/schema";
 import type {
@@ -13,6 +13,9 @@ import type {
 // VisCRM's work on a deal: research requests, the SDR's first-call timer and
 // the offline conversions. Every read and write takes the organization and
 // filters by it (AGENTS.md, Tenancy).
+
+/** A research request the CRM is running right now (its claim). */
+const RUNNING = "Running";
 // --- Research ----------------------------------------------------------------
 
 async function research(organizationId: string, dealId: string) {
@@ -173,6 +176,45 @@ async function timersToEscalate(organizationId: string, now: string) {
     .limit(50);
 }
 
+/** An escalation whose task couldn't be made goes back to open. */
+async function reopenEscalation(organizationId: string, id: string) {
+  await db
+    .update(sdrTimer)
+    .set({ status: "OPEN", escalatedAt: null, escalatedToId: null })
+    .where(
+      and(
+        eq(sdrTimer.organizationId, organizationId),
+        eq(sdrTimer.id, id),
+        eq(sdrTimer.status, "ESCALATED"),
+      ),
+    );
+}
+
+/** Research the CRM is about to run itself: claimed so it runs once. */
+async function claimResearchRun(
+  organizationId: string,
+  dealId: string,
+  kind: ResearchKind,
+) {
+  const claimed = await db
+    .update(dealResearch)
+    .set({ error: RUNNING })
+    .where(
+      and(
+        eq(dealResearch.organizationId, organizationId),
+        eq(dealResearch.dealId, dealId),
+        eq(dealResearch.kind, kind),
+        eq(dealResearch.status, "PENDING"),
+        or(
+          isNull(dealResearch.error),
+          sql`${dealResearch.error} <> ${RUNNING}`,
+        ),
+      ),
+    )
+    .returning({ id: dealResearch.id });
+  return claimed.length > 0;
+}
+
 /** Marks a timer escalated, once: false when someone else did first. */
 async function markEscalated(
   organizationId: string,
@@ -217,6 +259,28 @@ async function insertConversion(values: {
   return inserted.length > 0;
 }
 
+/** What happened to a claimed (PENDING) conversion. */
+async function finishConversion(
+  organizationId: string,
+  dealId: string,
+  platform: ConversionPlatform,
+  event: ConversionEventName,
+  outcome: { status: ConversionStatus; response: string | null },
+) {
+  await db
+    .update(conversionEvent)
+    .set(outcome)
+    .where(
+      and(
+        eq(conversionEvent.organizationId, organizationId),
+        eq(conversionEvent.dealId, dealId),
+        eq(conversionEvent.platform, platform),
+        eq(conversionEvent.event, event),
+        eq(conversionEvent.status, "PENDING"),
+      ),
+    );
+}
+
 async function conversions(organizationId: string, dealId: string) {
   return db
     .select()
@@ -230,22 +294,6 @@ async function conversions(organizationId: string, dealId: string) {
     .orderBy(asc(conversionEvent.createdAt));
 }
 
-async function conversionKeys(organizationId: string, dealId: string) {
-  const rows = await db
-    .select({
-      platform: conversionEvent.platform,
-      event: conversionEvent.event,
-    })
-    .from(conversionEvent)
-    .where(
-      and(
-        eq(conversionEvent.organizationId, organizationId),
-        eq(conversionEvent.dealId, dealId),
-      ),
-    );
-  return new Set(rows.map((row) => `${row.platform}:${row.event}`));
-}
-
 export const VisWorkRepository = {
   research,
   requestResearch,
@@ -256,7 +304,9 @@ export const VisWorkRepository = {
   closeCompletedTimers,
   timersToEscalate,
   markEscalated,
+  reopenEscalation,
+  claimResearchRun,
   insertConversion,
   conversions,
-  conversionKeys,
+  finishConversion,
 };
