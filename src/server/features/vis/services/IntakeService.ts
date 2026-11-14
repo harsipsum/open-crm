@@ -8,6 +8,7 @@ import { DealService } from "@/server/features/deals/services/DealService";
 import { WorkspaceService } from "@/server/features/workspace/services/WorkspaceService";
 import { fitScore } from "@/server/features/vis/fitScore";
 import { VisRepository } from "@/server/features/vis/repositories/VisRepository";
+import { LeadMatchService } from "@/server/features/vis/services/LeadMatchService";
 import { SdrService } from "@/server/features/vis/services/SdrService";
 import { AppError } from "@/server/lib/errors";
 import { OPEN_DEAL_STAGES } from "@/shared/deal-stages";
@@ -129,51 +130,6 @@ async function contactFor(
   return created.id;
 }
 
-/** The live contact this lead already is: by email first, then by phone. */
-async function knownPerson(
-  organizationId: string,
-  email: string | null,
-  phone: string | undefined,
-) {
-  const byEmail = email
-    ? await VisRepository.liveContactByEmail(organizationId, email)
-    : null;
-  if (byEmail) return byEmail;
-  const key = phoneKey(phone);
-  return key ? VisRepository.liveContactByPhone(organizationId, key) : null;
-}
-
-/** Their newest open VisCRM deal for this product (or any, when none is named). */
-async function openDealFor(
-  organizationId: string,
-  contactId: string,
-  input: LeadInput,
-) {
-  const open = await VisRepository.leadDeals(organizationId, contactId, true);
-  return (
-    open.find(
-      (row) => !input.product || !row.product || row.product === input.product,
-    ) ?? null
-  );
-}
-
-/** What VisCRM already holds for a person, found by email or phone. */
-async function lookup(
-  organizationId: string,
-  query: { email?: string; phone?: string },
-) {
-  const known = await knownPerson(
-    organizationId,
-    query.email?.trim().toLowerCase() ?? null,
-    query.phone,
-  );
-  if (!known) return { contactId: null, deals: [] };
-  return {
-    contactId: known.id,
-    deals: await VisRepository.leadDeals(organizationId, known.id, false),
-  };
-}
-
 /** Creates the lead's company, contact and deal; returns the deal. */
 async function createLead(
   organizationId: string,
@@ -214,11 +170,40 @@ async function createLead(
     );
   }
   const pipeline = await requirePipeline(organizationId);
-  const known = await knownPerson(organizationId, email, input.person.phone);
+  const known = await LeadMatchService.knownPerson(
+    organizationId,
+    email,
+    input.person.phone,
+  );
+  // Anyone can type someone else's email into a chat: a match only counts
+  // when the sending app says the channel proved that identifier (a WhatsApp
+  // sender's phone, an email confirmed by a code). Otherwise nothing is
+  // written to that person's records; the app gets the possible match for a
+  // person to review.
+  if (known && !input.person.verified?.includes(known.matchedBy)) {
+    const open = await VisRepository.leadDeals(organizationId, known.id, true);
+    return {
+      dealId: null,
+      companyId: null,
+      contactId: null,
+      ownerId: null,
+      fitScore: null,
+      duplicate: false,
+      existing: false,
+      possibleMatch: {
+        matchedBy: known.matchedBy,
+        openDealIds: open.map((row) => row.dealId),
+      },
+    };
+  }
   // The same person back on another channel (web chat, then WhatsApp) joins
   // their open deal for this product instead of opening a second one.
   if (known) {
-    const open = await openDealFor(organizationId, known.id, input);
+    const open = await LeadMatchService.openDealFor(
+      organizationId,
+      known.id,
+      input,
+    );
     if (open) {
       await addNote(
         organizationId,
@@ -440,5 +425,4 @@ export const IntakeService = {
   createLead,
   moveToStage,
   addNote,
-  lookup,
 };

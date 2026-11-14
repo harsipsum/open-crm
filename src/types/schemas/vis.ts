@@ -27,6 +27,11 @@ export const leadSchema = z
       email: z.email().max(320).optional(),
       phone: short(40).optional(),
       title: short(200).optional(),
+      /** Which identifiers the channel proved (a WhatsApp sender's phone, an email confirmed by a code). Only these match an existing person. */
+      verified: z
+        .array(z.enum(["email", "phone"]))
+        .max(2)
+        .optional(),
     }),
     attribution: z.object({
       source: z.enum(LEAD_SOURCES),

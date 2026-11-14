@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import { KeyService } from "@/server/features/vis/services/KeyService";
 import { IntakeService } from "@/server/features/vis/services/IntakeService";
+import { LeadMatchService } from "@/server/features/vis/services/LeadMatchService";
 import { ResearchService } from "@/server/features/vis/services/ResearchService";
 import { VisDealService } from "@/server/features/vis/services/VisDealService";
 import { asAppError } from "@/server/lib/errors";
@@ -107,10 +108,14 @@ async function route(request: Request): Promise<Response> {
     const who = await caller(request, "leads:write");
     const input = await bodyOf(request, leadSchema);
     if (input instanceof Response) return input;
-    return json(
-      201,
-      await IntakeService.createLead(who.organizationId, input, who.app),
+    const lead = await IntakeService.createLead(
+      who.organizationId,
+      input,
+      who.app,
     );
+    // 201 when a deal was made or joined; 200 for a possible match that
+    // wrote nothing.
+    return json(lead.dealId ? 201 : 200, lead);
   }
   if (pathname === `${VIS_API_PREFIX}leads` && request.method === "GET") {
     const who = await caller(request, "deals:read");
@@ -123,7 +128,7 @@ async function route(request: Request): Promise<Response> {
       return json(422, { error: "Give an email or a phone." });
     return json(
       200,
-      await IntakeService.lookup(who.organizationId, query.data),
+      await LeadMatchService.lookup(who.organizationId, query.data),
     );
   }
   const match = DEAL_PATH.exec(pathname);

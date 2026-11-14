@@ -18,6 +18,13 @@ import { IntakeService } from "./IntakeService";
 import { VisDealService } from "./VisDealService";
 import { VisTickService } from "./VisTickService";
 
+/** A lead that must make (or join) a deal. */
+async function newLead(...args: Parameters<typeof IntakeService.createLead>) {
+  const created = await IntakeService.createLead(...args);
+  if (!created.dealId) throw new Error("Expected a deal");
+  return { ...created, dealId: created.dealId };
+}
+
 const A = "org_a";
 
 const lead = {
@@ -51,12 +58,12 @@ describe("VisCRM guards", () => {
   });
 
   it("returns the same deal for a resent submission", async () => {
-    const first = await IntakeService.createLead(
+    const first = await newLead(
       A,
       { ...lead, externalRef: "chat-123" },
       "VISAGENT",
     );
-    const again = await IntakeService.createLead(
+    const again = await newLead(
       A,
       { ...lead, externalRef: "chat-123" },
       "VISAGENT",
@@ -70,7 +77,7 @@ describe("VisCRM guards", () => {
       "INSERT INTO suppressed_contact (organization_id, email) VALUES ('org_a', 'gone@synth-ports.example')",
     );
     await expect(
-      IntakeService.createLead(
+      newLead(
         A,
         {
           ...lead,
@@ -80,11 +87,12 @@ describe("VisCRM guards", () => {
       ),
     ).rejects.toThrow(/deleted from the CRM/);
 
-    const first = await IntakeService.createLead(A, lead, null);
-    const moved = await IntakeService.createLead(
+    const first = await newLead(A, lead, null);
+    const moved = await newLead(
       A,
       {
         ...lead,
+        person: { ...lead.person, verified: ["email"] },
         company: { name: "Elsewhere (synthetic)", domain: "elsewhere.example" },
       },
       null,
@@ -93,7 +101,7 @@ describe("VisCRM guards", () => {
   });
 
   it("sends no personal details once consent is withdrawn", async () => {
-    const created = await IntakeService.createLead(A, lead, null);
+    const created = await newLead(A, lead, null);
     await VisDealService.setConsent(A, {
       dealId: created.dealId,
       consent: "UNKNOWN",
@@ -115,7 +123,7 @@ describe("VisCRM guards", () => {
   });
 
   it("runs a research request only once it is claimed", async () => {
-    const created = await IntakeService.createLead(A, lead, null);
+    const created = await newLead(A, lead, null);
     await VisWorkRepository.requestResearch(A, created.dealId, "COMPANY");
     expect(
       await VisWorkRepository.claimResearchRun(A, created.dealId, "COMPANY"),

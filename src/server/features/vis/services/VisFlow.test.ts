@@ -20,6 +20,13 @@ import { KeyService } from "./KeyService";
 import { ResearchService } from "./ResearchService";
 import { VisTickService } from "./VisTickService";
 
+/** A lead that must make (or join) a deal. */
+async function newLead(...args: Parameters<typeof IntakeService.createLead>) {
+  const created = await IntakeService.createLead(...args);
+  if (!created.dealId) throw new Error("Expected a deal");
+  return { ...created, dealId: created.dealId };
+}
+
 const A = "org_a";
 const B = "org_b";
 
@@ -65,7 +72,7 @@ describe("VisCRM flow", () => {
   });
 
   it("sets the system fields and the 5-minute call at intake, and keeps them in their organization", async () => {
-    const created = await IntakeService.createLead(A, lead, "VISAGENT");
+    const created = await newLead(A, lead, "VISAGENT");
     const attribution = await VisRepository.attribution(A, created.dealId);
     expect(attribution).toMatchObject({
       source: "GOOGLE_ADS",
@@ -90,8 +97,8 @@ describe("VisCRM flow", () => {
   });
 
   it("escalates an uncalled lead once at 24 hours, and never a called one", async () => {
-    const late = await IntakeService.createLead(A, lead, null);
-    const called = await IntakeService.createLead(
+    const late = await newLead(A, lead, null);
+    const called = await newLead(
       A,
       {
         ...lead,
@@ -124,7 +131,7 @@ describe("VisCRM flow", () => {
   });
 
   it("waits for research without a provider, takes the relay's answer once, then writes the brief and the conversions once", async () => {
-    const created = await IntakeService.createLead(A, lead, null);
+    const created = await newLead(A, lead, null);
     await IntakeService.moveToStage(
       A,
       { dealId: created.dealId, stage: "SQL" },

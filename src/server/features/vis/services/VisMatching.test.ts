@@ -16,6 +16,7 @@ vi.mock("@/db/runBatch", () => database.runBatchModule);
 import { phoneKey } from "@/shared/vis";
 import { serveVisApi } from "../visApiRoute";
 import { IntakeService } from "./IntakeService";
+import { LeadMatchService } from "@/server/features/vis/services/LeadMatchService";
 import { KeyService } from "./KeyService";
 
 const A = "org_a";
@@ -79,13 +80,43 @@ describe("VisCRM matching", () => {
     expect(phoneKey("12345")).toBeNull();
   });
 
+  it("writes nothing to a person matched only by an email someone typed", async () => {
+    const first = await IntakeService.createLead(A, web, "VISAGENT");
+    const notesBefore = await database.rows(
+      "SELECT id FROM activity WHERE type = 'NOTE'",
+    );
+    const claimed = await IntakeService.createLead(
+      A,
+      {
+        company: { name: "Anyone (synthetic)" },
+        person: { firstName: "Impostor", email: "noor@synth-freight.example" },
+        attribution: { source: "WEB_CHAT" },
+        product: "CLEARTAX",
+        note: "Please change my bank details.",
+      },
+      "VISAGENT",
+    );
+    expect(claimed).toMatchObject({
+      dealId: null,
+      possibleMatch: { matchedBy: "email", openDealIds: [first.dealId] },
+    });
+    expect(await database.rows("SELECT id FROM deal")).toHaveLength(1);
+    expect(
+      await database.rows("SELECT id FROM activity WHERE type = 'NOTE'"),
+    ).toHaveLength(notesBefore.length);
+  });
+
   it("joins a returning person's open deal by phone, and opens a new one for another product", async () => {
     const first = await IntakeService.createLead(A, web, "VISAGENT");
     const whatsapp = await IntakeService.createLead(
       A,
       {
         company: { name: "Unknown (WhatsApp)" },
-        person: { firstName: "Noor", phone: "00971500000042" },
+        person: {
+          firstName: "Noor",
+          phone: "00971500000042",
+          verified: ["phone"],
+        },
         attribution: { source: "WHATSAPP", ctwaClid: "synthetic-ctwa" },
         product: "CLEARTAX",
       },
@@ -96,20 +127,26 @@ describe("VisCRM matching", () => {
 
     const asana = await IntakeService.createLead(
       A,
-      { ...web, product: "ASANA" },
+      {
+        ...web,
+        person: { ...web.person, verified: ["email"] },
+        product: "ASANA",
+      },
       "VISAGENT",
     );
     expect(asana.dealId).not.toBe(first.dealId);
     expect(asana.contactId).toBe(first.contactId);
 
-    const byPhone = await IntakeService.lookup(A, { phone: "+971500000042" });
+    const byPhone = await LeadMatchService.lookup(A, {
+      phone: "+971500000042",
+    });
     expect(byPhone.contactId).toBe(first.contactId);
     expect(byPhone.deals.map((row) => row.product)).toEqual(
       expect.arrayContaining(["ASANA", "CLEARTAX"]),
     );
     expect(byPhone.deals).toHaveLength(2);
     expect(
-      await IntakeService.lookup("org_b", { phone: "+971500000042" }),
+      await LeadMatchService.lookup("org_b", { phone: "+971500000042" }),
     ).toEqual({
       contactId: null,
       deals: [],
