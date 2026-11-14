@@ -26,6 +26,7 @@ import {
   type DealDetail,
   type DealListRow,
 } from "@/server/features/deals/services/DealService";
+import { pipelineOutput } from "@/server/everyapp/tools/pipelineOutput";
 import { WorkspaceService } from "@/server/features/workspace/services/WorkspaceService";
 import { DEAL_STAGES } from "@/shared/crm-enums";
 import { CURRENCY_CODES } from "@/shared/currency";
@@ -75,6 +76,7 @@ const summaryOutput = z.object({
   name: z.string(),
   company: recordRefOutput,
   stage: z.enum(DEAL_STAGES),
+  ...pipelineOutput,
   amount: z.number().nullable(),
   currency: z.string(),
   inReportingCurrency: reportedOutput,
@@ -112,6 +114,7 @@ const detailsOutput = z.object({
   }),
   owner: personOutput,
   stage: z.enum(DEAL_STAGES),
+  ...pipelineOutput,
   stageChangedAt: z.string().nullable(),
   closedAt: z.string().nullable(),
   closedReason: z.string().nullable(),

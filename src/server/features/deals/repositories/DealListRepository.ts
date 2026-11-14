@@ -13,12 +13,15 @@ import {
 } from "drizzle-orm";
 import { sum } from "remeda";
 import { db } from "@/db";
-import { company, deal, user } from "@/db/schema";
+import { company, deal, pipeline, pipelineStage, user } from "@/db/schema";
 import { countedIn } from "@/server/features/currency/repositories/DealConversionRepository";
 import {
   dealCompanyColumns,
   dealOwnerColumns,
+  dealPipelineColumns,
   ofItsCompany,
+  ofItsPipeline,
+  ofItsPipelineStage,
 } from "@/server/features/deals/repositories/DealRepository";
 import {
   archivedCondition,
@@ -208,10 +211,13 @@ async function list(
         archivedAt: deal.archivedAt,
         company: dealCompanyColumns,
         owner: dealOwnerColumns,
+        ...dealPipelineColumns,
       })
       .from(deal)
       .innerJoin(company, ofItsCompany)
       .innerJoin(user, eq(user.id, deal.ownerId))
+      .leftJoin(pipeline, ofItsPipeline)
+      .leftJoin(pipelineStage, ofItsPipelineStage)
       .where(where)
       .orderBy(...sortOrder(SORTS[input.sort], input.dir, deal.id))
       .limit(limit)

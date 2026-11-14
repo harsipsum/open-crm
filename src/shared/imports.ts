@@ -136,6 +136,13 @@ export const IMPORT_TARGETS = {
       id: "stage",
       label: "Stage",
       aliases: ["deal stage", "pipeline stage", "status"],
+      hint: "With a pipeline, any of its stages: a new one is added",
+    },
+    {
+      id: "pipeline",
+      label: "Pipeline",
+      aliases: ["deal pipeline"],
+      hint: "A pipeline's name: a new one is added with its stages",
     },
     {
       id: "amount",
