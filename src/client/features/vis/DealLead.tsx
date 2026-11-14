@@ -18,6 +18,16 @@ import { ORDER_TYPE_LABELS, PRODUCT_LABELS } from "@/shared/vis";
 
 const leadKey = (dealId: string) => ["deals", "lead", dealId] as const;
 
+/** The brief's sections, as the SDR reads them. */
+const BRIEF_LABELS: Record<string, string> = {
+  account: "Account",
+  whyNow: "Why now",
+  whoToCall: "Who to call",
+  fit: "Fit",
+  product: "Product",
+  source: "Source",
+};
+
 function usd(value: number) {
   return `USD ${value.toFixed(value < 1 ? 3 : 2)}`;
 }
@@ -195,7 +205,11 @@ export function DealLead({ dealId }: { dealId: string }) {
         {briefSections.length ? (
           <dl className="space-y-1 rounded-md bg-muted/50 p-3">
             {briefSections.map(([name, value]) => (
-              <Row key={name} label={name} value={value} />
+              <Row
+                key={name}
+                label={BRIEF_LABELS[name] ?? name}
+                value={value}
+              />
             ))}
           </dl>
         ) : null}
