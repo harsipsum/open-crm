@@ -62,6 +62,17 @@ export const INBOUND_SOURCES: readonly LeadSource[] = [
   "LINKEDIN_ADS",
 ];
 
+/**
+ * A phone number as VisCRM matches it: E.164, "+" and digits only, so a
+ * WhatsApp sender (+971501234567) and a form ("00971 50 123 4567") are the
+ * same person. Null when there aren't enough digits to be a number.
+ */
+export function phoneKey(raw: string | null | undefined): string | null {
+  let digits = (raw ?? "").replace(/\D/g, "");
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  return digits.length >= 8 && digits.length <= 15 ? `+${digits}` : null;
+}
+
 /** The products Vistar resells (HubSpot "Product / Solution"). */
 export const PRODUCTS = ["CLEARTAX", "ASANA", "FRESHWORKS", "LARK"] as const;
 export type Product = (typeof PRODUCTS)[number];

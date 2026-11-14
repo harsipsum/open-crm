@@ -14,6 +14,7 @@ import { OPEN_DEAL_STAGES } from "@/shared/deal-stages";
 import { normalizeDomain } from "@/shared/domain";
 import {
   INBOUND_SOURCES,
+  phoneKey,
   PRODUCT_LABELS,
   STAGE_ROLES,
   VISTAR_PIPELINE,
@@ -119,12 +120,58 @@ async function contactFor(
     firstName: input.person.firstName,
     lastName: input.person.lastName,
     email,
-    phone: input.person.phone,
+    // Stored as E.164 so a WhatsApp sender matches it later.
+    phone: phoneKey(input.person.phone) ?? input.person.phone,
     title: input.person.title,
     companyId,
     ownerId,
   });
   return created.id;
+}
+
+/** The live contact this lead already is: by email first, then by phone. */
+async function knownPerson(
+  organizationId: string,
+  email: string | null,
+  phone: string | undefined,
+) {
+  const byEmail = email
+    ? await VisRepository.liveContactByEmail(organizationId, email)
+    : null;
+  if (byEmail) return byEmail;
+  const key = phoneKey(phone);
+  return key ? VisRepository.liveContactByPhone(organizationId, key) : null;
+}
+
+/** Their newest open VisCRM deal for this product (or any, when none is named). */
+async function openDealFor(
+  organizationId: string,
+  contactId: string,
+  input: LeadInput,
+) {
+  const open = await VisRepository.leadDeals(organizationId, contactId, true);
+  return (
+    open.find(
+      (row) => !input.product || !row.product || row.product === input.product,
+    ) ?? null
+  );
+}
+
+/** What VisCRM already holds for a person, found by email or phone. */
+async function lookup(
+  organizationId: string,
+  query: { email?: string; phone?: string },
+) {
+  const known = await knownPerson(
+    organizationId,
+    query.email?.trim().toLowerCase() ?? null,
+    query.phone,
+  );
+  if (!known) return { contactId: null, deals: [] };
+  return {
+    contactId: known.id,
+    deals: await VisRepository.leadDeals(organizationId, known.id, false),
+  };
 }
 
 /** Creates the lead's company, contact and deal; returns the deal. */
@@ -167,10 +214,35 @@ async function createLead(
     );
   }
   const pipeline = await requirePipeline(organizationId);
+  const known = await knownPerson(organizationId, email, input.person.phone);
+  // The same person back on another channel (web chat, then WhatsApp) joins
+  // their open deal for this product instead of opening a second one.
+  if (known) {
+    const open = await openDealFor(organizationId, known.id, input);
+    if (open) {
+      await addNote(
+        organizationId,
+        open.dealId,
+        [
+          `Came back via ${input.attribution.source}${input.attribution.campaign ? ` (${input.attribution.campaign})` : ""}.`,
+          input.note,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+        app,
+      );
+      return {
+        dealId: open.dealId,
+        companyId: known.companyId,
+        contactId: known.id,
+        ownerId: null,
+        fitScore: open.fitScore,
+        duplicate: false,
+        existing: true,
+      };
+    }
+  }
   const ownerId = await ownerFor(organizationId, input.ownerEmail);
-  const known = email
-    ? await VisRepository.liveContactByEmail(organizationId, email)
-    : null;
   const companyId = await companyFor(organizationId, input, ownerId, known);
   const contactId = await contactFor(
     organizationId,
@@ -234,6 +306,7 @@ async function createLead(
     ownerId,
     fitScore: row.fitScore,
     duplicate: false,
+    existing: false,
   };
 }
 
@@ -367,4 +440,5 @@ export const IntakeService = {
   createLead,
   moveToStage,
   addNote,
+  lookup,
 };

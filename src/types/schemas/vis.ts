@@ -115,5 +115,13 @@ export const consentSchema = z
   .object({ dealId: z.string().min(1), consent: z.enum(CONSENT_STATES) })
   .strict();
 
+/** Find a person and their deals by email or phone. */
+export const lookupSchema = z
+  .object({ email: z.email().max(320).optional(), phone: short(40).optional() })
+  .strict()
+  .refine((query) => query.email || query.phone, {
+    message: "Give an email or a phone.",
+  });
+
 export const appSchema = z.object({ app: z.enum(VIS_APPS) }).strict();
 export const dealIdSchema = z.object({ dealId: z.string().min(1) }).strict();

@@ -8,6 +8,7 @@ import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 import type { VisScope } from "@/shared/vis";
 import {
   consentSchema,
+  lookupSchema,
   leadSchema,
   noteSchema,
   orderSchema,
@@ -21,6 +22,7 @@ import {
 // EVERY_APP_ORG_ID where the deploy pins one) and what it may do:
 //
 //   POST /api/vis/v1/leads                    leads:write
+//   GET  /api/vis/v1/leads?email=|phone=      deals:read
 //   GET  /api/vis/v1/deals/<id>               deals:read
 //   POST /api/vis/v1/deals/<id>/notes         notes:write
 //   POST /api/vis/v1/deals/<id>/stage         stage:write
@@ -108,6 +110,20 @@ async function route(request: Request): Promise<Response> {
     return json(
       201,
       await IntakeService.createLead(who.organizationId, input, who.app),
+    );
+  }
+  if (pathname === `leads` && request.method === "GET") {
+    const who = await caller(request, "deals:read");
+    const params = new URL(request.url).searchParams;
+    const query = lookupSchema.safeParse({
+      ...(params.get("email") ? { email: params.get("email") } : {}),
+      ...(params.get("phone") ? { phone: params.get("phone") } : {}),
+    });
+    if (!query.success)
+      return json(422, { error: "Give an email or a phone." });
+    return json(
+      200,
+      await IntakeService.lookup(who.organizationId, query.data),
     );
   }
   const match = DEAL_PATH.exec(pathname);

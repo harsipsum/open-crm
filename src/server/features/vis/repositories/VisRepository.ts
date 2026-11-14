@@ -65,6 +65,62 @@ async function liveContactByEmail(organizationId: string, email: string) {
   return found ?? null;
 }
 
+/**
+ * The live contact with this phone (E.164 from phoneKey), however it was
+ * typed: spaces, dashes, brackets and a 00 prefix are ignored.
+ */
+async function liveContactByPhone(organizationId: string, phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  const stored = sql`replace(replace(replace(replace(replace(${contact.phone}, '+', ''), ' ', ''), '-', ''), '(', ''), ')', '')`;
+  const [found] = await db
+    .select({ id: contact.id, companyId: contact.companyId })
+    .from(contact)
+    .where(
+      and(
+        eq(contact.organizationId, organizationId),
+        isNull(contact.archivedAt),
+        or(eq(stored, digits), eq(stored, `00${digits}`)),
+      ),
+    )
+    .limit(1);
+  return found ?? null;
+}
+
+/**
+ * The person's VisCRM deals, newest first: still open, or every one when
+ * `openOnly` is false.
+ */
+async function leadDeals(
+  organizationId: string,
+  contactId: string,
+  openOnly: boolean,
+) {
+  return db
+    .select({
+      dealId: deal.id,
+      name: deal.name,
+      stage: pipelineStage.name,
+      product: dealAttribution.product,
+      source: dealAttribution.source,
+      fitScore: dealAttribution.fitScore,
+      closedAt: deal.closedAt,
+      createdAt: dealAttribution.createdAt,
+    })
+    .from(dealAttribution)
+    .innerJoin(deal, eq(deal.id, dealAttribution.dealId))
+    .leftJoin(pipelineStage, eq(pipelineStage.id, deal.pipelineStageId))
+    .where(
+      and(
+        eq(dealAttribution.organizationId, organizationId),
+        eq(deal.organizationId, organizationId),
+        eq(dealAttribution.contactId, contactId),
+        isNull(deal.archivedAt),
+        openOnly ? isNull(deal.closedAt) : undefined,
+      ),
+    )
+    .orderBy(desc(dealAttribution.createdAt));
+}
+
 /** The lead an app already sent under this reference, if any. */
 async function attributionByRef(
   organizationId: string,
@@ -389,6 +445,8 @@ async function dealPeople(
 export const VisRepository = {
   liveCompanyByDomain,
   liveContactByEmail,
+  liveContactByPhone,
+  leadDeals,
   attributionByRef,
   pipelineByName,
   insertAttribution,
