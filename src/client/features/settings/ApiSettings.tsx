@@ -1,3 +1,4 @@
+import { BRAND } from "@/shared/brand";
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import {
@@ -32,7 +33,7 @@ export function ApiSettings() {
     ? `${account.gatewayUrl}/mcp`
     : origin && `${origin}/mcp`;
   const claudeCodeCommand = mcpUrl
-    ? `claude mcp add --transport http everyapp ${mcpUrl}`
+    ? `claude mcp add --transport http ${(BRAND.suiteName ?? "everyapp").toLowerCase()} ${mcpUrl}`
     : null;
 
   return (
@@ -64,7 +65,7 @@ export function ApiSettings() {
         <SettingsRow
           stacked
           label="Claude Code"
-          description="Run this in a terminal, then type /mcp, choose everyapp and Authenticate."
+          description="Run this in a terminal, then type /mcp, choose visos and Authenticate."
         >
           {claudeCodeCommand ? (
             <div className="flex max-w-full items-center gap-2">
