@@ -130,7 +130,7 @@ export function Sidebar({
 }
 
 /**
- * The way back up, first in the sidebar as in every Every App app: the
+ * The way back up, first in the sidebar as in every VisOS app: the
  * gateway owns sign-in, organizations, teams and the other apps. The row
  * keeps its height while the gateway's URL loads so the header doesn't jump.
  */
@@ -141,14 +141,14 @@ function EveryAppLink() {
   return (
     <a
       href={gatewayUrl ?? undefined}
-      aria-label="Back to Every App"
+      aria-label="Back to VisOS"
       className={cn(
         "mb-1 inline-flex h-7 w-fit items-center gap-0.5 rounded-md pl-0.5 pr-2 text-sm text-sidebar-foreground/60 transition-colors hover:text-sidebar-foreground",
         accountQuery.isPending && "invisible",
       )}
     >
       <ChevronLeft className="size-4" aria-hidden />
-      <span>Every App</span>
+      <span>VisOS</span>
     </a>
   );
 }

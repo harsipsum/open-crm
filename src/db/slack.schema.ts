@@ -14,7 +14,7 @@ import { isoNow, timestamp } from "./columns";
 // drops them (TODO.md).
 //
 // The organization's Slack workspace, connected by an owner or admin through
-// the Every App gateway's `slack` OAuth client:
+// the VisOS's `slack` OAuth client:
 // the tokens Slack issued, the channels the CRM can reach, and which members
 // are which Slack users. Tokens are read on the server only, to call Slack;
 // they never reach a client, a log, the model or an MCP tool.

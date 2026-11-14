@@ -81,7 +81,7 @@ function routeAppRequest(
   return appFetch(request);
 }
 
-// The CRM is private behind an Every App gateway, which signs the person's
+// The CRM is private behind an VisOS, which signs the person's
 // identity onto every request it forwards, or its public marker onto the
 // website tracking routes. Fail closed on anything else before routing.
 // Gateway calls made while serving the request forward its identity

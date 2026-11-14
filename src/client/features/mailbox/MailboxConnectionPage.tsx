@@ -132,7 +132,7 @@ function NotConnected({ status }: { status: ProviderStatus }) {
       }
       description={
         ready
-          ? `Connecting goes through Every App, which holds the connection; the CRM never sees your password or tokens. Only conversations with companies in the CRM are stored. Everyone in the workspace, their AI clients and the CRM's agents can read them.`
+          ? `Connecting goes through VisOS, which holds the connection; the CRM never sees your password or tokens. Only conversations with companies in the CRM are stored. Everyone in the workspace, their AI clients and the CRM's agents can read them.`
           : (setup ?? notSetUpCopy(copy.name, status.settings))
       }
       action={
