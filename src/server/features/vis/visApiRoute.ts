@@ -112,7 +112,7 @@ async function route(request: Request): Promise<Response> {
       await IntakeService.createLead(who.organizationId, input, who.app),
     );
   }
-  if (pathname === `leads` && request.method === "GET") {
+  if (pathname === `${VIS_API_PREFIX}leads` && request.method === "GET") {
     const who = await caller(request, "deals:read");
     const params = new URL(request.url).searchParams;
     const query = lookupSchema.safeParse({

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 
 // The same person on two channels: a web chat lead with email and phone,
 // then a WhatsApp lead with the phone alone (typed differently), joins the
@@ -13,7 +14,9 @@ vi.mock("@/db", () => ({ db: database.db }));
 vi.mock("@/db/runBatch", () => database.runBatchModule);
 
 import { phoneKey } from "@/shared/vis";
+import { serveVisApi } from "../visApiRoute";
 import { IntakeService } from "./IntakeService";
+import { KeyService } from "./KeyService";
 
 const A = "org_a";
 
@@ -44,6 +47,30 @@ describe("VisCRM matching", () => {
       "INSERT INTO workspace (organization_id, name, deals_enabled) VALUES ('org_a', 'A', 1), ('org_b', 'B', 1)",
     );
     await IntakeService.setupPipeline(A);
+  });
+
+  it("serves create and lookup over the keyed API, by the key's scopes", async () => {
+    const agent = await KeyService.mint(A, "VISAGENT", "user_a");
+    const proposals = await KeyService.mint(A, "VISPROPOSALS", "user_a");
+    const call = (path: string, key: string, body?: unknown) =>
+      serveVisApi(
+        new Request(`https://viscrm.example/api/vis/v1${path}`, {
+          method: body ? "POST" : "GET",
+          headers: { "content-type": "application/json", "x-viscrm-key": key },
+          body: body ? JSON.stringify(body) : undefined,
+        }),
+      );
+    const created = await call("/leads", agent.key, web);
+    expect(created.status).toBe(201);
+    const refused = await call("/leads", proposals.key, web);
+    expect(refused.status).toBe(403);
+    const found = await call("/leads?phone=%2B971500000042", agent.key);
+    expect(found.status).toBe(200);
+    const { deals } = z
+      .object({ deals: z.array(z.unknown()) })
+      .parse(await found.json());
+    expect(deals).toHaveLength(1);
+    expect((await call("/leads", agent.key)).status).toBe(422);
   });
 
   it("reads phones as E.164", () => {
