@@ -1,6 +1,8 @@
+@layer visos-skin;
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./visos-skin.css";
 
 /* shadcn components here are built on Base UI. The shadcn variables below are
    the source of truth for theme colors. */
