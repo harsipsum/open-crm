@@ -15,7 +15,7 @@ export default {
   name: "VisCRM",
   description:
     "Companies, contacts and deals, with mail, meetings and website visits filed on them.",
-  icon: "/everyapp-icon.svg",
+  icon: "/viscrm-icon.svg",
   resources: {
     d1: ["DB"],
   },
