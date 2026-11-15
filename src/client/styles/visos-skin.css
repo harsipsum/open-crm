@@ -32,6 +32,8 @@ html:root:not(:is([data-theme="visos-dark"])) {
   --background: #eaf0f6;
   --foreground: #1a2b3c;
   --card: rgb(255 255 255 / 0.74);
+  /* What a sticky header or column sits on: rows scroll under it, so it can't be see-through. */
+  --visos-card-solid: #f7f9fc;
   --card-foreground: #1a2b3c;
   --popover: rgb(250 252 254 / 0.97);
   --popover-foreground: #1a2b3c;
@@ -86,6 +88,7 @@ html:root:is([data-theme="visos-dark"]) {
   --background: #0f1d31;
   --foreground: #f1f6fb;
   --card: rgb(26 43 60 / 0.62);
+  --visos-card-solid: #19293f;
   --card-foreground: #f1f6fb;
   --popover: rgb(17 32 56 / 0.97);
   --popover-foreground: #f1f6fb;
@@ -193,6 +196,11 @@ html:root [data-slot="table-card"] {
   box-shadow: var(--visos-shadow-sm);
 }
 
+/* A sticky header or column on a card: rows scroll under it, so it is solid. */
+html:root :is(.sticky, [class*="sticky "]):is(.bg-card, [class*="bg-card"]) {
+  background-color: var(--visos-card-solid) !important;
+}
+
 /* Floating surfaces: menus, popovers, dialogs and sheets. */
 html:root :is([data-slot="dropdown-menu-content"], [data-slot="popover-content"], [data-slot="select-content"], [data-slot="combobox-content"], [data-slot="tooltip-content"]) {
   -webkit-backdrop-filter: blur(20px) saturate(1.15);
@@ -225,4 +233,92 @@ html:root :is([data-slot="input"], [data-slot="select-trigger"], [data-slot="inp
 }
 html:root [data-slot="textarea"] {
   border-radius: 14px;
+}
+
+/* Motion, after the reference: things rise into place, cards lift under the
+   pointer, the active pill settles in. Only transform and opacity move (the
+   compositor runs them without layout or paint), nothing loops, and none of it
+   runs for someone who asked their system for less motion. */
+@keyframes visos-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+@keyframes visos-settle {
+  from {
+    opacity: 0.6;
+    transform: scale(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:root [data-slot="sidebar-inset"] :is([data-slot="card"], [data-slot="table-card"]) {
+    animation: visos-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  html:root [data-slot="sidebar-inset"] :is([data-slot="card"], [data-slot="table-card"]):nth-child(2) {
+    animation-delay: 45ms;
+  }
+  html:root [data-slot="sidebar-inset"] :is([data-slot="card"], [data-slot="table-card"]):nth-child(3) {
+    animation-delay: 90ms;
+  }
+  html:root [data-slot="sidebar-inset"] :is([data-slot="card"], [data-slot="table-card"]):nth-child(4) {
+    animation-delay: 135ms;
+  }
+  html:root [data-slot="sidebar-inset"] :is([data-slot="card"], [data-slot="table-card"]):nth-child(5) {
+    animation-delay: 180ms;
+  }
+  html:root [data-slot="sidebar-inset"] :is([data-slot="card"], [data-slot="table-card"]):nth-child(n + 6) {
+    animation-delay: 220ms;
+  }
+  html:root li:nth-child(n) > [data-slot="card"] {
+    animation-delay: calc(min(var(--visos-i, 0), 8) * 40ms);
+  }
+  html:root li:nth-child(2) > [data-slot="card"] { --visos-i: 1; }
+  html:root li:nth-child(3) > [data-slot="card"] { --visos-i: 2; }
+  html:root li:nth-child(4) > [data-slot="card"] { --visos-i: 3; }
+  html:root li:nth-child(5) > [data-slot="card"] { --visos-i: 4; }
+  html:root li:nth-child(6) > [data-slot="card"] { --visos-i: 5; }
+  html:root li:nth-child(7) > [data-slot="card"] { --visos-i: 6; }
+  html:root li:nth-child(n + 8) > [data-slot="card"] { --visos-i: 7; }
+
+  /* A card that opens something lifts, and its icon leans in. */
+  html:root [data-slot="card"]:has(> a, > button) {
+    transition:
+      transform 380ms cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 380ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 240ms ease;
+  }
+  html:root [data-slot="card"]:has(> a, > button):hover {
+    transform: translateY(-3px);
+    box-shadow: var(--visos-shadow);
+  }
+  html:root [data-slot="card"]:has(> a, > button) img {
+    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  html:root [data-slot="card"]:has(> a, > button):hover img {
+    transform: scale(1.06);
+  }
+
+  /* Buttons give under the press; rows and tabs ease between states. */
+  html:root [data-slot="button"] {
+    transition:
+      background-color 180ms ease,
+      color 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  html:root [data-slot="button"]:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  html:root :is([data-slot="sidebar-menu-button"], [data-slot="tabs-trigger"], [data-slot="toggle-group-item"]) {
+    transition:
+      background-color 240ms ease,
+      color 240ms ease,
+      box-shadow 240ms ease;
+  }
+  html:root [data-slot="sidebar-menu-button"]:is([data-active], [aria-current="page"]) {
+    animation: visos-settle 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
 }
