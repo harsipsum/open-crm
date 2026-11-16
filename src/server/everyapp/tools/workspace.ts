@@ -25,7 +25,7 @@ import {
 
 // The workspace around the records: its name and website, how long it keeps
 // archived records, whether deals are on, its members and its currencies. Changing the workspace and its currencies is for owners and admins,
-// as in Settings. Members, roles and invitations themselves are the Every App
+// as in Settings. Members, roles and invitations themselves are the VisOS
 // gateway's.
 
 const workspaceOutput = z.object({

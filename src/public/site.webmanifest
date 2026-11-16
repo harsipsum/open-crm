@@ -1,6 +1,6 @@
 {
-	"name": "OpenCRM",
-	"short_name": "OpenCRM",
+	"name": "VisCRM",
+	"short_name": "VisCRM",
 	"icons": [
 		{
 			"src": "/web-app-manifest-192x192.png",

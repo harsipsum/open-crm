@@ -11,6 +11,7 @@ import {
 } from "@/client/features/deals/dealFormat";
 import { dealQueryOptions } from "@/client/features/deals/dealQueries";
 import { useDealMutations } from "@/client/features/deals/useDealMutations";
+import { DealLead } from "@/client/features/vis/DealLead";
 import {
   LocalDay,
   RelativeTime,
@@ -73,11 +74,18 @@ export function DealSheet({ dealId }: { dealId: string }) {
               ) : null,
               actions: (
                 <>
-                  <DealStageMenu
-                    dealId={deal.id}
-                    stage={deal.stage}
-                    variant="control"
-                  />
+                  {deal.pipelineStage ? (
+                    <Badge variant="outline" className="h-8 gap-1.5 px-3 text-sm">
+                      <span className="size-1.5 rounded-full bg-primary" />
+                      {deal.pipelineStage}
+                    </Badge>
+                  ) : (
+                    <DealStageMenu
+                      dealId={deal.id}
+                      stage={deal.stage}
+                      variant="control"
+                    />
+                  )}
                   <RecordActionsMenu
                     name={deal.name}
                     archived={deal.archivedAt !== null}
@@ -114,6 +122,7 @@ export function DealSheet({ dealId }: { dealId: string }) {
       lists={
         deal
           ? [
+              { value: "lead", content: <DealLead dealId={deal.id} /> },
               {
                 value: "contacts",
                 content: <DealContacts deal={deal} mutations={mutations} />,

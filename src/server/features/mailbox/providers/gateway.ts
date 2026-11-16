@@ -8,7 +8,7 @@ import { gatewayCallFor } from "@/server/lib/gateway-attribution";
 import { getWorkersEnv } from "@/server/lib/runtime-env";
 import type { MailboxProvider } from "@/shared/mailbox";
 
-// Mail and calendar through the Every App gateway's connections
+// Mail and calendar through the VisOS's connections
 // (`google-workspace`, `microsoft-365`): the gateway runs the OAuth flow,
 // holds each member's tokens and puts them on the CRM's calls to Gmail,
 // Calendar and Graph. The CRM never sees a token. A connection is one

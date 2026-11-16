@@ -1,3 +1,4 @@
+import { BRAND } from "@/shared/brand";
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import {
@@ -32,14 +33,14 @@ export function ApiSettings() {
     ? `${account.gatewayUrl}/mcp`
     : origin && `${origin}/mcp`;
   const claudeCodeCommand = mcpUrl
-    ? `claude mcp add --transport http everyapp ${mcpUrl}`
+    ? `claude mcp add --transport http ${(BRAND.suiteName ?? "everyapp").toLowerCase()} ${mcpUrl}`
     : null;
 
   return (
     <SettingsSection
       id="ai-clients"
       title="Connect your AI client"
-      description="Your Every App gateway has one address for AI clients. Connected once, your AI client works in the CRM the way you can: companies, contacts, deals, follow-ups and agents."
+      description="Your VisOS has one address for AI clients. Connected once, your AI client works in the CRM the way you can: companies, contacts, deals, follow-ups and agents."
     >
       <SettingsCard>
         <SettingsRow
@@ -64,7 +65,7 @@ export function ApiSettings() {
         <SettingsRow
           stacked
           label="Claude Code"
-          description="Run this in a terminal, then type /mcp, choose everyapp and Authenticate."
+          description="Run this in a terminal, then type /mcp, choose visos and Authenticate."
         >
           {claudeCodeCommand ? (
             <div className="flex max-w-full items-center gap-2">
@@ -85,7 +86,7 @@ export function ApiSettings() {
           label="Sign in"
           description={
             account?.gatewayUrl
-              ? "Your Every App sign-in page opens: sign in, allow the CRM, and choose whether your AI client may change things or only read."
+              ? "Your VisOS sign-in page opens: sign in, allow the CRM, and choose whether your AI client may change things or only read."
               : "This endpoint uses bearer-token authentication. Ask an owner or admin for access."
           }
         />
@@ -117,7 +118,7 @@ export function ApiSettings() {
               label="Bearer-token clients"
               description="Cursor and other tools add the same address as an MCP server. Tools that can't sign in on their own take a personal access token instead, as the Authorization: Bearer header."
             >
-              <OpenLink href={tokensUrl}>Open Tokens on Every App</OpenLink>
+              <OpenLink href={tokensUrl}>Open Tokens on VisOS</OpenLink>
             </SettingsRow>
           </SettingsCard>
         </SettingsDisclosure>

@@ -11,11 +11,11 @@
  *   pnpm dev               # everyapp dev: D1, behind a gateway-lite
  */
 export default {
-  id: "crm",
-  name: "OpenCRM",
+  id: "viscrm",
+  name: "VisCRM",
   description:
     "Companies, contacts and deals, with mail, meetings and website visits filed on them.",
-  icon: "/everyapp-icon.svg",
+  icon: "/viscrm-icon.svg",
   resources: {
     d1: ["DB"],
   },
@@ -86,6 +86,42 @@ export default {
         },
       ],
     },
+    // VisCRM (src/server/features/vis): each optional; without one, its
+    // step waits and the deal's Lead section says so.
+    "vis-research": {
+      name: "Lead research",
+      why: "Composio Instant: company at intake, person at Qualified.",
+      steps: ["Composio API key; turn on Instant Toolkits in the project."],
+      secrets: [{ name: "COMPOSIO_API_KEY", how: "Composio project key." }],
+    },
+    "vis-asana": {
+      name: "Won deals to Asana",
+      why: "A won deal becomes an intake task with every field filled.",
+      steps: ["A service identity's Asana token and the intake project id."],
+      secrets: [
+        { name: "ASANA_TOKEN", how: "Service identity token." },
+        { name: "ASANA_PROJECT_GID", how: "Intake project id." },
+        { name: "VIS_CRM_ORIGIN", how: "This CRM's https origin." },
+      ],
+    },
+    "vis-conversions": {
+      name: "Offline conversions",
+      why: "Qualified and won deals to Google, Meta and LinkedIn; dry run unless VIS_CONVERSIONS_LIVE is 1.",
+      steps: ["Each platform's keys; unset ones stay dry runs."],
+      secrets: [
+        { name: "VIS_CONVERSIONS_LIVE", how: "1 sends." },
+        { name: "GOOGLE_DATA_MANAGER_TOKEN", how: "Data Manager token." },
+        { name: "GOOGLE_ADS_CUSTOMER_ID", how: "Customer id." },
+        { name: "GOOGLE_ADS_QUALIFIED_ACTION_ID", how: "Action id." },
+        { name: "GOOGLE_ADS_PURCHASE_ACTION_ID", how: "Action id." },
+        { name: "META_DATASET_ID", how: "Dataset id." },
+        { name: "META_CAPI_TOKEN", how: "CAPI token." },
+        { name: "META_WABA_ID", how: "WhatsApp Business Account id." },
+        { name: "LINKEDIN_CAPI_TOKEN", how: "Conversions token." },
+        { name: "LINKEDIN_QUALIFIED_CONVERSION_URN", how: "Conversion URN." },
+        { name: "LINKEDIN_PURCHASE_CONVERSION_URN", how: "Conversion URN." },
+      ],
+    },
   },
   // Every member of the organization works in the CRM.
   access: "everyone",
@@ -104,5 +140,8 @@ export default {
     // An operator erasing an organization, with requests signed by
     // ERASURE_SECRET; 404 while it is unset (src/server/features/erasure).
     { path: "/internal/erase-organization", methods: ["POST"] },
+    // VisCRM's write API for the sibling apps; every call carries its app's
+    // key, which names the organization (src/server/features/vis/visApiRoute.ts).
+    { path: "/api/vis/**", methods: ["GET", "POST"] },
   ],
 } as const;
