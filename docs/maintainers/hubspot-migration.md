@@ -20,7 +20,10 @@ node scripts/import-hubspot.ts
 Inputs: `HUBSPOT_TOKEN`, `HUBSPOT_PORTAL_ID`, `STAR_CRM_URL`, `STAR_CRM_KEY`.
 The script accepts any HTTPS Star CRM base URL, so the same import can populate
 a new client-owned install. Use `HUBSPOT_IMPORT_PHASE=objects` or `associations`
-to recover one phase; the default `all` verifies both. Source CRM access is
+to recover one phase; the default `all` verifies both. `HUBSPOT_IMPORT_FROM=deals` resumes writes at deals while still
+reading earlier IDs and verifying all final counts. Archived records use
+full-property list pages because HubSpot can omit listed archived IDs from
+batch/read and even return 404 from their individual reads. Source CRM access is
 strictly read-only. The only POSTs to HubSpot are batch/read and search.
 Archived source records are included separately from active API totals. Their
 destination retention clock starts on import; original dates stay in the blob.

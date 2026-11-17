@@ -218,12 +218,23 @@ describe("HubSpot migration data path", () => {
     const response = await serveHubspotImport(
       new Request("https://crm.example.test/api/vis/v1/hubspot/objects", {
         method: "POST",
-        headers: { "x-hubspot-import-key": "wrong" },
+        headers: { authorization: "Bearer wrong" },
         body: "{}",
       }),
     );
     expect(response.status).toBe(401);
     expect((await HubspotRepository.counts(org, portalId)).objects).toEqual([]);
+    const valid = await serveHubspotImport(
+      new Request(
+        `https://crm.example.test/api/vis/v1/hubspot/counts?portalId=${portalId}`,
+        {
+          headers: {
+            authorization: "Bearer synthetic-key-that-is-only-a-test",
+          },
+        },
+      ),
+    );
+    expect(valid.status).toBe(200);
   });
 
   it("keeps an archived owner for history without making them an assignment candidate", async () => {

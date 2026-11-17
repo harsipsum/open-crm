@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { sortBy } from "remeda";
+import { readArchived } from "./hubspot-archived.ts";
 import {
   associationRowSchema,
   associationTargetSchema,
@@ -43,6 +44,7 @@ export async function runImport({
   budgetFile,
   maxRequests = 10000,
   phase = "all",
+  fromType: resumeFrom,
 }: {
   baseUrl: string;
   key: string;
@@ -51,6 +53,7 @@ export async function runImport({
   budgetFile?: string;
   maxRequests?: number;
   phase?: string;
+  fromType?: string;
 }) {
   const base = new URL(baseUrl);
   if (
@@ -62,6 +65,8 @@ export async function runImport({
     throw new Error("Clean CRM base URL required");
   if (!key || !/^\d+$/.test(portalId))
     throw new Error("CRM key and portal ID required");
+  if (resumeFrom && !TYPES.includes(resumeFrom))
+    throw new Error("Invalid resume object type");
   const hs = new HubspotReader(token, { budgetFile, maxRequests });
   const receipt = {
     source: {} as Record<string, { active: number; archived: number }>,
@@ -77,7 +82,7 @@ export async function runImport({
       const r = await fetch(new URL(`/api/vis/v1/hubspot/${action}`, base), {
         method: payload ? "POST" : "GET",
         headers: {
-          "x-hubspot-import-key": key,
+          authorization: `Bearer ${key}`,
           "content-type": "application/json",
         },
         ...(payload ? { body: JSON.stringify({ portalId, ...payload }) } : {}),
@@ -175,11 +180,14 @@ export async function runImport({
     }
   }
   async function copyType(type: string) {
+    const writeType =
+      phase !== "associations" &&
+      (!resumeFrom || TYPES.indexOf(type) >= TYPES.indexOf(resumeFrom));
     ids[type] = [];
     const schema = await hs.request(`/crm/v3/properties/${type}`);
     const properties = schema.results.map((row) => propertySchema.parse(row));
     const props = properties.map((p) => p.name);
-    if (phase !== "associations")
+    if (writeType)
       await objects(
         "schemas",
         properties.map((p) => ({ ...p, id: `${type}:${p.name}` })),
@@ -189,14 +197,14 @@ export async function runImport({
     });
     if (typeof total.total !== "number") throw new Error("Missing API total");
     receipt.source[type] = { active: total.total, archived: 0 };
-    for (const archived of [false, true]) {
+    for (const archived of [false]) {
       for await (const page of hs.list(
         `/crm/v3/objects/${type}?archived=${archived}`,
       )) {
         const batchIds = page.map((r) => r.id);
         ids[type].push(...batchIds);
         if (archived) receipt.source[type].archived += page.length;
-        if (phase === "associations") continue;
+        if (!writeType) continue;
         const full = new Map<string, SourceRecord>(
           page.map((r) => [r.id, { ...r, properties: {} }]),
         );
@@ -226,6 +234,11 @@ export async function runImport({
           }),
         );
       }
+    }
+    for await (const page of readArchived(hs, type, props)) {
+      ids[type].push(...page.map((row) => row.id));
+      receipt.source[type].archived += page.length;
+      if (writeType) await objects(type, page);
     }
     const activeCount = ids[type].length - receipt.source[type].archived;
     if (activeCount !== total.total)
@@ -336,6 +349,7 @@ if (
       resolve(".everyapp/hubspot-api-budget.json"),
     maxRequests: Number(process.env.HUBSPOT_MAX_REQUESTS ?? 10000),
     phase: process.env.HUBSPOT_IMPORT_PHASE ?? "all",
+    fromType: process.env.HUBSPOT_IMPORT_FROM,
   }).catch((e) => {
     console.error(e instanceof Error ? e.message : "Import failed");
     process.exitCode = 1;

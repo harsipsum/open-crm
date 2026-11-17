@@ -16,7 +16,9 @@ function json(status: number, data: unknown) {
 async function authorized(request: Request) {
   const secret = await getOptionalEnvValue("HUBSPOT_IMPORT_KEY");
   const org = await getOptionalEnvValue("EVERY_APP_ORG_ID");
-  const presented = request.headers.get("x-hubspot-import-key");
+  const presented = /^Bearer (.+)$/i.exec(
+    request.headers.get("authorization") ?? "",
+  )?.[1];
   if (!secret || !org || !presented || presented.length > 512) return null;
   const algorithm = { name: "HMAC", hash: "SHA-256" };
   const bytes = new TextEncoder();
