@@ -11,9 +11,9 @@ import {
 } from "@/serverFunctions/vis";
 import { ORDER_TYPE_LABELS, PRODUCT_LABELS } from "@/shared/vis";
 
-// A deal's Lead section (VisCRM): where the lead came from, set by the
+// A deal's Lead section (Star CRM): where the lead came from, set by the
 // system at first touch; its research and what it cost; the SDR's first
-// call; the offline conversions it sent; and its Asana task. Deals VisCRM
+// call; the offline conversions it sent; and its Asana task. Deals Star CRM
 // didn't create show nothing here.
 
 const leadKey = (dealId: string) => ["deals", "lead", dealId] as const;

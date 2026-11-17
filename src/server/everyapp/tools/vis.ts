@@ -18,7 +18,7 @@ import {
   stageMoveSchema,
 } from "@/types/schemas/vis";
 
-// VisCRM as an AI client sees it: set up the pipeline, mint the sibling
+// Star CRM as an AI client sees it: set up the pipeline, mint the sibling
 // apps' keys (owners and admins), create and move leads, read a deal's lead
 // view, and run the minute's tick now. The sibling apps themselves write
 // through the keyed API (visApiRoute.ts), not these.
@@ -27,7 +27,7 @@ const anyOutput = z.object({}).loose();
 
 export const visTools = {
   vis_setup_pipeline: dealTool({
-    description: `Set up VisCRM's ${VISTAR_PIPELINE.name} with Vistar's HubSpot stages in order (${VISTAR_PIPELINE.stages.join(", ")}). Safe to run again.`,
+    description: `Set up Star CRM's ${VISTAR_PIPELINE.name} with Vistar's HubSpot stages in order (${VISTAR_PIPELINE.stages.join(", ")}). Safe to run again.`,
     risk: "write",
     input: z.object({}).strict(),
     output: anyOutput,
@@ -164,7 +164,7 @@ export const visTools = {
 
   vis_run_tick: dealTool({
     description:
-      "Run the minute's VisCRM work now for this organization: SDR timers, research, conversions and the won handoff.",
+      "Run the minute's Star CRM work now for this organization: SDR timers, research, conversions and the won handoff.",
     risk: "write",
     input: z.object({}).strict(),
     output: anyOutput,

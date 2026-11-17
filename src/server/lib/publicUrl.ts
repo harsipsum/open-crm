@@ -9,7 +9,7 @@ import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 // - an IP address for a host (a page is fetched by its name, and https to an
 //   address can't show a certificate for it), localhost, and a name with no
 //   dot;
-// - the VisOS's host and the app hosts under it, this CRM's
+// - the Star OS's host and the app hosts under it, this CRM's
 //   among them. Strictly public routes those through Cloudflare's front
 //   door, which is the gateway itself; the gateway refuses its own domains
 //   for the same reason (private-every-app docs/security-model.md).
@@ -51,7 +51,7 @@ export async function refusedHost(url: URL): Promise<string | null> {
   }
   for (const gateway of await gatewayHosts()) {
     if (host === gateway || host.endsWith(`.${gateway}`)) {
-      return "That address is on the VisOS.";
+      return "That address is on the Star OS.";
     }
   }
   return null;

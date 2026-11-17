@@ -1,1 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Vistar"><rect width="64" height="64" rx="14" fill="#FFFFFF"/><path d="M14 44 L28 18 L42 44 Z" fill="#E8441A"/><path d="M30 30 L39 50 L48 30" fill="none" stroke="#00AEEF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1F3347"/><stop offset="1" stop-color="#112038"/></linearGradient>
+    <linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".14"/><stop offset=".5" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#t)"/>
+  <rect x=".5" y=".5" width="63" height="63" rx="14.5" fill="url(#s)" stroke="#ffffff" stroke-opacity=".08"/>
+  <g fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="28" cy="25" r="7"/>
+    <path d="M15 47c1.6-7.4 7-11 13-11s11.4 3.6 13 11"/>
+    <path d="M42 22h8M42 29h8" stroke="#E8441A"/>
+  </g>
+</svg>

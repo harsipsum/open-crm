@@ -8,7 +8,7 @@ import {
 } from "@/shared/mailbox";
 
 // A member's mailbox connections: which mailbox each reads and whether it
-// needs connecting again. The tokens are the VisOS's; the CRM
+// needs connecting again. The tokens are the Star OS's; the CRM
 // never holds one.
 
 const connectionColumns = {

@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 
-// Fakes for the mailbox tests, at the network boundary only: the VisOS
+// Fakes for the mailbox tests, at the network boundary only: the Star OS
 // gateway's binding (each provider's status, and the proxy that puts a
 // member's token on their calls) and the providers' APIs (global fetch),
 // with payloads shaped like Google's and Microsoft's.

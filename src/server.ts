@@ -81,7 +81,7 @@ function routeAppRequest(
   return appFetch(request);
 }
 
-// The CRM is private behind an VisOS, which signs the person's
+// The CRM is private behind an Star OS, which signs the person's
 // identity onto every request it forwards, or its public marker onto the
 // website tracking routes. Fail closed on anything else before routing.
 // Gateway calls made while serving the request forward its identity
@@ -109,7 +109,7 @@ async function handleRequest(
       if (isTrackingPath(new URL(verified.url).pathname)) {
         return serveTracking(verified);
       }
-      // VisCRM's write API for the sibling apps: public at the gateway,
+      // Star CRM's write API for the sibling apps: public at the gateway,
       // and every call carries its own app key (visApiRoute.ts).
       if (isVisApiPath(new URL(verified.url).pathname)) {
         return serveVisApi(verified);

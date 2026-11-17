@@ -40,7 +40,7 @@ export function ApiSettings() {
     <SettingsSection
       id="ai-clients"
       title="Connect your AI client"
-      description="Your VisOS has one address for AI clients. Connected once, your AI client works in the CRM the way you can: companies, contacts, deals, follow-ups and agents."
+      description="Your Star OS has one address for AI clients. Connected once, your AI client works in the CRM the way you can: companies, contacts, deals, follow-ups and agents."
     >
       <SettingsCard>
         <SettingsRow
@@ -86,7 +86,7 @@ export function ApiSettings() {
           label="Sign in"
           description={
             account?.gatewayUrl
-              ? "Your VisOS sign-in page opens: sign in, allow the CRM, and choose whether your AI client may change things or only read."
+              ? "Your Star OS sign-in page opens: sign in, allow the CRM, and choose whether your AI client may change things or only read."
               : "This endpoint uses bearer-token authentication. Ask an owner or admin for access."
           }
         />
@@ -118,7 +118,7 @@ export function ApiSettings() {
               label="Bearer-token clients"
               description="Cursor and other tools add the same address as an MCP server. Tools that can't sign in on their own take a personal access token instead, as the Authorization: Bearer header."
             >
-              <OpenLink href={tokensUrl}>Open Tokens on VisOS</OpenLink>
+              <OpenLink href={tokensUrl}>Open Tokens on Star OS</OpenLink>
             </SettingsRow>
           </SettingsCard>
         </SettingsDisclosure>

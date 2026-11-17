@@ -181,7 +181,7 @@ async function fetchPage(url: URL): Promise<Fetched> {
         signal: AbortSignal.timeout(VERIFY_TIMEOUT_MS),
         headers: {
           accept: "text/html,application/javascript,*/*",
-          "user-agent": "Mozilla/5.0 (compatible; VisCRM/1.0; +verify)",
+          "user-agent": "Mozilla/5.0 (compatible; Star CRM/1.0; +verify)",
         },
       });
     } catch {

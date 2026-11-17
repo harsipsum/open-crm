@@ -87,7 +87,7 @@ async function liveContactByPhone(organizationId: string, phone: string) {
 }
 
 /**
- * The person's VisCRM deals, newest first: still open, or every one when
+ * The person's Star CRM deals, newest first: still open, or every one when
  * `openOnly` is false.
  */
 async function leadDeals(
@@ -215,7 +215,7 @@ async function updateAttribution(
 }
 
 /**
- * The deals VisCRM tracks (those its intake created), with where each sits
+ * The deals Star CRM tracks (those its intake created), with where each sits
  * in its pipeline: what the tick walks.
  */
 /** Deals closed longer ago than this are done: the tick leaves them alone. */
@@ -224,7 +224,7 @@ const SETTLED_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 const TICK_LIMIT = 500;
 
 /**
- * VisCRM's deals. With `now` (the tick), only those still in play: open,
+ * Star CRM's deals. With `now` (the tick), only those still in play: open,
  * or closed within the last 7 days, at most 500, newest first, so a tick's
  * work stays bounded however long the history grows.
  */

@@ -35,7 +35,7 @@ const web = {
   product: "CLEARTAX" as const,
 };
 
-describe("VisCRM matching", () => {
+describe("Star CRM matching", () => {
   beforeEach(async () => {
     await database.exec(`
       DELETE FROM sdr_timer; DELETE FROM deal_research; DELETE FROM deal_attribution;

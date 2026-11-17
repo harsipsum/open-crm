@@ -2,7 +2,7 @@ import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import { SyncStateRepository } from "@/server/features/mailbox/repositories/SyncStateRepository";
 import { toHex } from "./org-slug";
 
-// Each VisOS organization is a CRM organization with the same id, so its
+// Each Star OS organization is a CRM organization with the same id, so its
 // records and everything under them are scoped by it, as OpenSEO scopes its
 // organizations. The slug hex-encodes the id: gateway ids are
 // mixed-case, and slugify alone would fold two of them into one slug.

@@ -15,7 +15,7 @@ import type { EnsuredUserContext } from "./types";
 // Anything else gets the least.
 const ROLES = new Set(["owner", "admin", "member"]);
 
-// The VisOS signs in the person, checks they may open the CRM,
+// The Star OS signs in the person, checks they may open the CRM,
 // and signs their identity onto every request it forwards
 // (docs/maintainers/every-app.md). The deploy pins the CRM to its
 // organization (EVERY_APP_ORG_ID), and a token for any other organization is
@@ -44,7 +44,7 @@ export async function resolveEveryAppContext(
         `${error.message} Deploy the CRM to the gateway with \`everyapp deploy\`, or run it locally with \`pnpm dev\`.`,
       );
     }
-    console.error("VisOS identity verification failed:", error);
+    console.error("Star OS identity verification failed:", error);
     throw new AppError("UNAUTHENTICATED");
   }
   if (!user) throw new AppError("UNAUTHENTICATED");

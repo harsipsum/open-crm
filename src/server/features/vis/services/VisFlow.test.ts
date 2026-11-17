@@ -1,7 +1,7 @@
 import { sortBy } from "remeda";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// VisCRM's lead-to-won flow against a real database: the intake sets the
+// Star CRM's lead-to-won flow against a real database: the intake sets the
 // system fields and the SDR timer, the tick escalates once, research waits
 // for its provider and takes the relay's answer once, a won deal records its
 // conversions once per platform, and nothing crosses organizations.
@@ -54,7 +54,7 @@ const lead = {
   currency: "AED" as const,
 };
 
-describe("VisCRM flow", () => {
+describe("Star CRM flow", () => {
   beforeEach(async () => {
     await database.exec(`
       DELETE FROM conversion_event; DELETE FROM asana_handoff; DELETE FROM deal_order;

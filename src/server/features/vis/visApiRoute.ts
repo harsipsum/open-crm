@@ -18,7 +18,7 @@ import {
   stageMoveSchema,
 } from "@/types/schemas/vis";
 
-// VisCRM's write API for the sibling apps (everyapp.config.ts `public`):
+// Star CRM's write API for the sibling apps (everyapp.config.ts `public`):
 // the gateway forwards it with no identity, so every call carries its app's
 // key in `x-viscrm-key`, and the key alone names the organization (pinned to
 // EVERY_APP_ORG_ID where the deploy pins one) and what it may do:

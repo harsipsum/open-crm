@@ -20,8 +20,8 @@ export function MembersSettings() {
           label="Team access"
           description={
             canManage
-              ? "Manage members, roles and invitations on VisOS."
-              : "Ask an owner or admin to manage members on VisOS."
+              ? "Manage members, roles and invitations on Star OS."
+              : "Ask an owner or admin to manage members on Star OS."
           }
         >
           {canManage && account?.gatewayUrl ? (

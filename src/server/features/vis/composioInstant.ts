@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 
-// Composio Instant, as VisCRM's research calls it: a tool-router session per
+// Composio Instant, as Star CRM's research calls it: a tool-router session per
 // organization (its user id is viscrm-<organization>), one tool call per
 // request, and what Composio charged for it (instant_charge, an exact USD
 // amount). The answers' shapes are read through Zod, wherever the provider

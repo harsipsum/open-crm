@@ -3,7 +3,7 @@ import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
 
 /**
- * Where "Back to VisOS" goes: the VisOS owns sign-in,
+ * Where "Back to Star OS" goes: the Star OS owns sign-in,
  * sign-out, organizations and teams. The deploy sets GATEWAY_URL; the
  * identity tokens' issuer is the same origin, so it stands in where
  * GATEWAY_URL isn't set (local dev).

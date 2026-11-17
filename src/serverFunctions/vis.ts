@@ -5,7 +5,7 @@ import { VisDealService } from "@/server/features/vis/services/VisDealService";
 import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
 import { dealIdSchema } from "@/types/schemas/vis";
 
-// The deal sheet's Lead section: what VisCRM knows about the deal's lead,
+// The deal sheet's Lead section: what Star CRM knows about the deal's lead,
 // and the two things a member does there.
 
 export const getDealLead = createServerFn({ method: "GET" })

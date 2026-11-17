@@ -52,7 +52,7 @@ function currencyItems(currency: string) {
 
 /**
  * Vistar's pipeline as the deal moves through it, read only: the agents and
- * VisCRM's own flows move the stage. On Hold and Deal Lost show only when the
+ * Star CRM's own flows move the stage. On Hold and Deal Lost show only when the
  * deal is there.
  */
 function PipelineSteps({ current }: { current: string }) {

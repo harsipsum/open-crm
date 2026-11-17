@@ -26,7 +26,7 @@ import {
   VIS_APPS,
 } from "../shared/vis";
 
-// VisCRM's own tables (src/shared/vis.ts says what each value means). All of
+// Star CRM's own tables (src/shared/vis.ts says what each value means). All of
 // them hang off a deal or the organization, and all are additive: no CRM
 // table changes shape.
 

@@ -38,7 +38,7 @@ const PACKS = {
   vistaros: {
     id: "vistaros",
     appName: "Star CRM",
-    suiteName: "VisOS",
+    suiteName: "Star OS",
     logoUrl: null,
     colors: {
       primary: "#0090C8",
@@ -54,7 +54,7 @@ export const BRAND: BrandPack = PACKS[ACTIVE_BRAND_PACK];
 
 /** The pack's colours as theme variables, light and dark. */
 export function brandCss(pack: BrandPack = BRAND) {
-  // The VisOS suite look: the same surfaces as the VisOS home (gateway brand.css),
+  // The Star OS suite look: the same surfaces as the Star OS home (gateway brand.css),
   // so moving between apps never changes the chrome.
   if (pack.id === "vistaros") {
     return [

@@ -3,7 +3,7 @@ import { phoneKey } from "@/shared/vis";
 import type { LeadInput } from "@/types/schemas/vis";
 
 // Who a lead already is: the live contact with its email (first) or its
-// E.164 phone, and their open VisCRM deals. Intake joins an open deal only
+// E.164 phone, and their open Star CRM deals. Intake joins an open deal only
 // on an identifier the sending app says its channel proved.
 /**
  * The live contact this lead already is, by email first, then by phone, and
@@ -25,7 +25,7 @@ async function knownPerson(
   return byPhone ? { ...byPhone, matchedBy: "phone" as const } : null;
 }
 
-/** Their newest open VisCRM deal for this product (or any, when none is named). */
+/** Their newest open Star CRM deal for this product (or any, when none is named). */
 async function openDealFor(
   organizationId: string,
   contactId: string,
@@ -39,7 +39,7 @@ async function openDealFor(
   );
 }
 
-/** What VisCRM already holds for a person, found by email or phone. */
+/** What Star CRM already holds for a person, found by email or phone. */
 async function lookup(
   organizationId: string,
   query: { email?: string; phone?: string },
