@@ -85,8 +85,7 @@ export function dealColumns({
       // pipeline's stage; Star CRM's own flows move it.
       cell: ({ row }) =>
         row.original.pipelineStage ? (
-          <span className="inline-flex items-center gap-1.5 text-sm whitespace-nowrap">
-            <span className="size-1.5 shrink-0 rounded-full bg-primary" />
+          <span className="text-sm whitespace-nowrap">
             {row.original.pipelineStage}
           </span>
         ) : (

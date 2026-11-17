@@ -75,8 +75,7 @@ export function DealSheet({ dealId }: { dealId: string }) {
               actions: (
                 <>
                   {deal.pipelineStage ? (
-                    <Badge variant="outline" className="h-8 gap-1.5 px-3 text-sm">
-                      <span className="size-1.5 rounded-full bg-primary" />
+                    <Badge variant="outline" className="h-8 px-3 text-sm">
                       {deal.pipelineStage}
                     </Badge>
                   ) : (

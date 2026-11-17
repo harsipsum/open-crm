@@ -87,14 +87,15 @@ export function TasksPage() {
             {tasks.data.map((task) => (
               <li
                 key={task.id}
-                className="flex items-start gap-3 px-4 py-3 text-sm"
+                className="flex items-center gap-3 px-4 py-3 text-sm"
               >
-                <span className="mt-0.5 flex">
+                <span className="flex">
                   <TaskCheckbox task={task} />
                 </span>
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate">{task.subject}</span>
-                  <span className="flex min-w-0 text-xs text-muted-foreground">
+                {/* One line: the task, then the record it's about, then when. */}
+                <span className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-3">
+                  <span className="min-w-0 truncate">{task.subject}</span>
+                  <span className="flex min-w-0 text-muted-foreground">
                     <AboutRecord entry={task} />
                   </span>
                 </span>
