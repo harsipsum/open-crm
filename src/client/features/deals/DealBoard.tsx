@@ -16,7 +16,7 @@ import { formatAmount, type DealRow } from "@/client/features/deals/dealFormat";
 import { dealListQueryOptions } from "@/client/features/deals/dealQueries";
 import { useSetDealStage } from "@/client/features/deals/useDealMutations";
 import { DEAL_STAGE_LABELS, DEAL_STAGE_ORDER } from "@/shared/deal-stages";
-import type { DealStage } from "@/shared/crm-enums";
+import { DEAL_STAGES, type DealStage } from "@/shared/crm-enums";
 import type { DealListInput } from "@/types/schemas/deals";
 
 /** How many cards a column shows; the table shows the rest. */
@@ -59,11 +59,14 @@ export function DealBoard({
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
+  const isDealStage = (value: unknown): value is DealStage =>
+    (DEAL_STAGES as readonly unknown[]).includes(value);
+
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over) return;
-    const stage = over.id as DealStage;
-    const from = active.data.current?.stage as DealStage | undefined;
-    if (!from || from === stage) return;
+    const stage = over.id;
+    const from: unknown = active.data.current?.stage;
+    if (!isDealStage(stage) || !isDealStage(from) || from === stage) return;
     const id = String(active.id);
     if (NEEDS_REASON.includes(stage)) {
       setClosing({ id, stage });

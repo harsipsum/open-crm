@@ -151,7 +151,7 @@ describe("record scoping", () => {
       );
       expect(() => assertSeesAll()).toThrow();
     });
-    await runWithAccess(mgr, () => expect(() => assertSeesAll()).toThrow());
+    runWithAccess(mgr, () => expect(() => assertSeesAll()).toThrow());
     expect(await ActivityRepository.findById(A, "t_s2")).not.toBeNull();
   });
 
@@ -190,7 +190,7 @@ describe("record scoping", () => {
         { userId: "s1", name: "Sam", email: "sam@a.test" },
         { userId: "s2", name: "Sol", email: "sol@a.test" },
       ],
-    } as ImportRun;
+    } satisfies Pick<ImportRun, "members">;
     const seller = await resolveAccess({
       userId: "s1",
       organizationId: A,
