@@ -4,9 +4,12 @@ import {
   eq,
   exists,
   inArray,
+  isNotNull,
   isNull,
+  notExists,
   notInArray,
   or,
+  type AnyColumn,
   type SQL,
 } from "drizzle-orm";
 import { db } from "@/db";
@@ -37,6 +40,7 @@ import type { CrmRole } from "@/shared/crm-roles";
 
 export interface Access {
   userId: string;
+  organizationId: string;
   role: CrmRole;
   /** Admins see every record. */
   seeAll: boolean;
@@ -102,6 +106,7 @@ export async function loadTeam(organizationId: string): Promise<TeamMember[]> {
 
 /** What `userId` (signed in with `gatewayRole`) sees, given the team. */
 function accessFor(
+  organizationId: string,
   userId: string,
   gatewayRole: string,
   team: TeamMember[],
@@ -123,6 +128,7 @@ function accessFor(
       : [userId];
   return {
     userId,
+    organizationId,
     role,
     seeAll: role === "admin",
     visibleOwnerIds: [...new Set(visible)],
@@ -136,7 +142,7 @@ export async function resolveAccess(context: {
   role: string;
 }): Promise<Access> {
   const team = await loadTeam(context.organizationId);
-  return accessFor(context.userId, context.role, team);
+  return accessFor(context.organizationId, context.userId, context.role, team);
 }
 
 /** Throws FORBIDDEN unless the work is an admin's, an app key's or the cron's. */
@@ -187,15 +193,105 @@ export function activityAccessCondition(): SQL | undefined {
   );
 }
 
-/** The deals the current member may see and change; undefined for all. */
-export function dealAccessCondition(): SQL | undefined {
+// The owner tests below read the team from the database by subquery rather
+// than binding every owner id: D1 allows 100 bound values per statement, and
+// these conditions ride along on statements already near that limit.
+
+/** The member's own records, and their team's when they manage one. */
+function ownedByVisible(column: AnyColumn, access: Access): SQL | undefined {
+  return or(
+    eq(column, access.userId),
+    access.role === "manager"
+      ? inArray(
+          column,
+          db
+            .select({ id: crmRole.userId })
+            .from(crmRole)
+            .where(
+              and(
+                eq(crmRole.organizationId, access.organizationId),
+                eq(crmRole.managerId, access.userId),
+              ),
+            ),
+        )
+      : undefined,
+  );
+}
+
+/** Owners who are not working members: their records are the shared pool. */
+function ownedByPool(column: AnyColumn, access: Access): SQL {
+  return notInArray(
+    column,
+    db
+      .select({ id: member.userId })
+      .from(member)
+      .where(
+        and(
+          eq(member.organizationId, access.organizationId),
+          notExists(
+            db
+              .select({ one: crmRole.userId })
+              .from(crmRole)
+              .where(
+                and(
+                  eq(crmRole.organizationId, member.organizationId),
+                  eq(crmRole.userId, member.userId),
+                  isNotNull(crmRole.leftAt),
+                ),
+              ),
+          ),
+        ),
+      ),
+  );
+}
+
+/** Rows in the shared pool through `column`; undefined for app and cron work. */
+export function poolOwnerCondition(column: AnyColumn): SQL | undefined {
+  const access = currentAccess();
+  return access ? ownedByPool(column, access) : undefined;
+}
+
+/** Rows owned through `column` that the member sees; undefined for all. */
+function ownerAccessCondition(column: AnyColumn): SQL | undefined {
   const access = currentAccess();
   if (!access || access.seeAll) return undefined;
   return or(
-    isNull(deal.ownerId),
-    inArray(deal.ownerId, access.visibleOwnerIds),
-    notInArray(deal.ownerId, access.workingOwnerIds),
+    isNull(column),
+    ownedByVisible(column, access),
+    ownedByPool(column, access),
   );
+}
+
+/**
+ * The tasks the current member may tick off: ones on records they see that
+ * they, their team or a leaver set, or that sit on a deal they own.
+ */
+export function taskAccessCondition(): SQL | undefined {
+  const access = currentAccess();
+  if (!access || access.seeAll) return undefined;
+  return and(
+    activityAccessCondition(),
+    or(
+      ownerAccessCondition(activity.createdById),
+      exists(
+        db
+          .select({ one: deal.id })
+          .from(deal)
+          .where(
+            and(
+              eq(deal.id, activity.dealId),
+              eq(deal.organizationId, activity.organizationId),
+              ownedByVisible(deal.ownerId, access),
+            ),
+          ),
+      ),
+    ),
+  );
+}
+
+/** The deals the current member may see and change; undefined for all. */
+export function dealAccessCondition(): SQL | undefined {
+  return ownerAccessCondition(deal.ownerId);
 }
 
 /**
@@ -206,9 +302,7 @@ export function contactAccessCondition(): SQL | undefined {
   const access = currentAccess();
   if (!access || access.seeAll) return undefined;
   return or(
-    isNull(contact.ownerId),
-    inArray(contact.ownerId, access.visibleOwnerIds),
-    notInArray(contact.ownerId, access.workingOwnerIds),
+    ownerAccessCondition(contact.ownerId),
     exists(
       db
         .select({ one: dealContact.dealId })
@@ -224,7 +318,7 @@ export function contactAccessCondition(): SQL | undefined {
           and(
             eq(dealContact.contactId, contact.id),
             eq(dealContact.organizationId, contact.organizationId),
-            inArray(deal.ownerId, access.visibleOwnerIds),
+            ownedByVisible(deal.ownerId, access),
           ),
         ),
     ),

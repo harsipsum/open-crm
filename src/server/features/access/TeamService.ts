@@ -1,4 +1,13 @@
-import { and, count, eq, isNull } from "drizzle-orm";
+import {
+  type AnyColumn,
+  and,
+  count,
+  eq,
+  exists,
+  isNull,
+  notInArray,
+  or,
+} from "drizzle-orm";
 import { db } from "@/db";
 import { activity, contact, crmRole, deal } from "@/db/schema";
 import { runBatch } from "@/db/runBatch";
@@ -175,11 +184,35 @@ async function setMemberLeft(
     isNull(contact.archivedAt),
   );
   // Their open follow-ups go with the book, so none waits on someone gone.
+  // A task on a record another working member owns stays a leaver's task:
+  // the heir can't see that record, and its owner can complete it.
+  const others = team
+    .filter((t) => !t.leftAt && t.userId !== input.userId)
+    .map((t) => t.userId)
+    .filter((id) => id !== heir.userId);
+  const heirSees = (table: typeof deal | typeof contact, id: AnyColumn) =>
+    or(
+      isNull(id),
+      exists(
+        db
+          .select({ one: table.id })
+          .from(table)
+          .where(
+            and(
+              eq(table.id, id),
+              eq(table.organizationId, organizationId),
+              or(isNull(table.ownerId), notInArray(table.ownerId, others)),
+            ),
+          ),
+      ),
+    );
   const openTasks = and(
     eq(activity.organizationId, organizationId),
     eq(activity.createdById, input.userId),
     eq(activity.type, "TASK"),
     isNull(activity.completedAt),
+    heirSees(deal, activity.dealId),
+    heirSees(contact, activity.contactId),
   );
   const [[deals], [contacts], [tasks]] = await Promise.all([
     db.select({ n: count() }).from(deal).where(openDeals),
@@ -188,6 +221,10 @@ async function setMemberLeft(
   ]);
   await runBatch((tx) => [
     tx
+      .update(activity)
+      .set({ createdById: heir.userId, updatedAt: at })
+      .where(openTasks),
+    tx
       .update(deal)
       .set({ ownerId: heir.userId, updatedAt: at })
       .where(openDeals),
@@ -195,10 +232,6 @@ async function setMemberLeft(
       .update(contact)
       .set({ ownerId: heir.userId, updatedAt: at })
       .where(liveContacts),
-    tx
-      .update(activity)
-      .set({ createdById: heir.userId, updatedAt: at })
-      .where(openTasks),
     mark(tx),
   ]);
   const moved = {

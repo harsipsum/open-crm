@@ -14,7 +14,12 @@ import {
 import { db } from "@/db";
 import { runBatch } from "@/db/runBatch";
 import { activity, company, contact, deal } from "@/db/schema";
-import { activityAccessCondition } from "@/server/features/access/access";
+import {
+  activityAccessCondition,
+  contactAccessCondition,
+  dealAccessCondition,
+  taskAccessCondition,
+} from "@/server/features/access/access";
 import {
   selectEntries,
   timelineAt,
@@ -304,7 +309,7 @@ async function setCompleted(
         eq(activity.organizationId, organizationId),
         eq(activity.id, id),
         eq(activity.type, "TASK"),
-        activityAccessCondition(),
+        taskAccessCondition(),
       ),
     )
     .returning({ id: activity.id });
@@ -382,7 +387,13 @@ async function recordCompany(
     .select({ companyId: table.companyId })
     .from(table)
     .where(
-      and(eq(table.organizationId, organizationId), eq(table.id, record.id)),
+      and(
+        eq(table.organizationId, organizationId),
+        eq(table.id, record.id),
+        record.kind === "contact"
+          ? contactAccessCondition()
+          : dealAccessCondition(),
+      ),
     )
     .limit(1);
   return row ?? null;

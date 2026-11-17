@@ -313,6 +313,7 @@ async function membershipsOf(
           eq(listEntry.organizationId, organizationId),
           inArray(key, part),
           isNull(recordList.archivedAt),
+          entity === "CONTACT" ? contactAccessCondition() : undefined,
         ),
       )
       .orderBy(asc(sql`lower(${recordList.name})`));

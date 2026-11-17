@@ -191,7 +191,7 @@ function timestampCell(
 }
 
 /** The member a cell names, by email or name; null for a blank cell. */
-export function memberOf(run: ImportRun, raw: string | null): string | null {
+function findMember(run: ImportRun, raw: string | null) {
   if (!raw) return null;
   const wanted = raw.toLowerCase();
   const found =
@@ -200,6 +200,13 @@ export function memberOf(run: ImportRun, raw: string | null): string | null {
   if (!found) {
     throw new RowError(`Nobody in this workspace is called "${raw}".`);
   }
+  return found;
+}
+
+/** The owner a cell names; a seller can only name themselves. */
+export function memberOf(run: ImportRun, raw: string | null): string | null {
+  const found = findMember(run, raw);
+  if (!found) return null;
   const access = currentAccess();
   if (
     access &&
@@ -227,7 +234,9 @@ export function customValues(
       throw new RowError(`There is no custom field "${key}".`);
     }
     const input =
-      definition.type === "USER" ? memberOf(run, raw.trim()) : raw.trim();
+      definition.type === "USER"
+        ? (findMember(run, raw.trim())?.userId ?? null)
+        : raw.trim();
     const parsed = parseFieldValue(
       {
         ...definition,

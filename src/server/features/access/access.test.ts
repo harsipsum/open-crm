@@ -13,6 +13,7 @@ vi.mock("@/db/runBatch", () => database.runBatchModule);
 import { and, eq } from "drizzle-orm";
 import { activity, deal } from "@/db/schema";
 import { ActivityRepository } from "@/server/features/activities/repositories/ActivityRepository";
+import { ActivityService } from "@/server/features/activities/services/ActivityService";
 import { FieldValueRepository } from "@/server/features/fields/repositories/FieldValueRepository";
 import {
   memberOf,
@@ -76,7 +77,9 @@ describe("record scoping", () => {
         ('d_s2', 'org_a', 'Seller two deal', 'acme', 's2'),
         ('d_pool', 'org_a', 'Pool deal', 'acme', 'old');
       INSERT INTO activity (id, organization_id, type, subject, company_id, deal_id, created_by_id, created_at, updated_at) VALUES
-        ('t_s2', 'org_a', 'TASK', 'Call back', 'acme', 'd_s2', 's2', '2026-01-01', '2026-01-01');
+        ('t_s2', 'org_a', 'TASK', 'Call back', 'acme', 'd_s2', 's2', '2026-01-01', '2026-01-01'),
+        ('t_on_mgr', 'org_a', 'TASK', 'Send deck', 'acme', 'd_mgr', 's2', '2026-01-01', '2026-01-01'),
+        ('t_co', 'org_a', 'TASK', 'Book visit', 'acme', NULL, 's2', '2026-01-01', '2026-01-01');
     `);
   });
 
@@ -108,12 +111,18 @@ describe("record scoping", () => {
       left: true,
       handTo: "s1",
     });
-    expect(handed.moved).toEqual({ deals: 1, contacts: 0, tasks: 1 });
+    expect(handed.moved).toEqual({ deals: 1, contacts: 0, tasks: 2 });
     const [task] = await database.db
       .select({ by: activity.createdById })
       .from(activity)
       .where(eq(activity.id, "t_s2"));
     expect(task?.by).toBe("s1");
+    // A task on a record another working member owns stays where its owner sees it.
+    const [kept] = await database.db
+      .select({ by: activity.createdById })
+      .from(activity)
+      .where(eq(activity.id, "t_on_mgr"));
+    expect(kept?.by).toBe("s2");
     expect(await visibleDeals("s1")).toEqual(["d_pool", "d_s1", "d_s2"]);
     expect(await visibleDeals("mgr")).toContain("d_s2");
   });
@@ -144,6 +153,35 @@ describe("record scoping", () => {
     });
     await runWithAccess(mgr, () => expect(() => assertSeesAll()).toThrow());
     expect(await ActivityRepository.findById(A, "t_s2")).not.toBeNull();
+  });
+
+  it("keeps a seller off another seller's tasks and hidden deals", async () => {
+    const as = (userId: string) =>
+      resolveAccess({ userId, organizationId: A, role: "member" });
+    const s1 = await as("s1");
+    await runWithAccess(s1, async () => {
+      expect(await ActivityRepository.findById(A, "t_co")).not.toBeNull();
+      expect(await ActivityRepository.setCompleted(A, "t_co", "now")).toBe(
+        false,
+      );
+      await expect(
+        ActivityService.createActivity(A, "s1", {
+          type: "NOTE",
+          body: "Hidden",
+          dealId: "d_s2",
+        }),
+      ).rejects.toThrow(/No deal/);
+    });
+    const notes = await database.db
+      .select({ id: activity.id })
+      .from(activity)
+      .where(eq(activity.type, "NOTE"));
+    expect(notes).toHaveLength(0);
+    await runWithAccess(await as("s2"), async () => {
+      expect(await ActivityRepository.setCompleted(A, "t_co", "now")).toBe(
+        true,
+      );
+    });
   });
 
   it("stops a seller importing records for someone else", async () => {
