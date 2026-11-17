@@ -3,7 +3,12 @@
 // and offline conversions). Shared by the server and the deal panel.
 
 /** The sibling apps that write into the CRM, each with its own key. */
-export const VIS_APPS = ["VISINBOX", "VISAGENT", "VISPROPOSALS"] as const;
+export const VIS_APPS = [
+  "VISINBOX",
+  "VISAGENT",
+  "VISPROPOSALS",
+  "VISWEB",
+] as const;
 export type VisApp = (typeof VIS_APPS)[number];
 
 /** What a key may do. A key carries only its app's scopes. */
@@ -29,6 +34,9 @@ export const APP_SCOPES: Record<VisApp, readonly VisScope[]> = {
   ],
   // Proposals read the deal, file versions as notes and move the stage.
   VISPROPOSALS: ["deals:read", "notes:write", "stage:write"],
+  // The website forms, called from the site's own server: new leads only, so
+  // a key taken from that host can add a lead and read or change nothing.
+  VISWEB: ["leads:write"],
 };
 
 /** Where a lead first came from, set by the system, never typed. */
