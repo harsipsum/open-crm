@@ -49,18 +49,16 @@ export async function counts(org: string, portal: string) {
     const [found] = await db
       .select({ count: sql<number>`count(*)`, active })
       .from(hubspotObject)
-      .innerJoin(
-        table,
+      // CROSS JOIN fixes the lookup order even when a new deployment has
+      // pre-import SQLite statistics that still estimate a tiny native table.
+      .crossJoin(table)
+      .where(
         and(
           eq(
             table.id,
             sql<string>`(${target(org, portal, kind, "")} || ${hubspotObject.sourceId})`,
           ),
           eq(table.organizationId, org),
-        ),
-      )
-      .where(
-        and(
           eq(hubspotObject.organizationId, org),
           eq(hubspotObject.portalId, portal),
           eq(hubspotObject.objectType, kind),

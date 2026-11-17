@@ -326,7 +326,7 @@ export async function runImport({
     )
       throw new Error(`CRM ${type} count mismatch`);
   }
-  if (phase === "all" && after.associations !== receipt.associations)
+  if (phase !== "objects" && after.associations !== receipt.associations)
     throw new Error("Association count mismatch");
   receipt.apiCalls = hs.calls;
   receipt.before = before;

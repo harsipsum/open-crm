@@ -218,7 +218,12 @@ async function writeObjects(org: string, input: HubspotBatch) {
         body: p.hs_note_body ?? "",
         occurredAt: date(p.hs_timestamp) ?? createdAt,
         createdById: ownerId,
-        meta: { source: "HUBSPOT", portalId: portal, sourceId: row.id },
+        meta: {
+          source: "HUBSPOT",
+          portalId: portal,
+          sourceId: row.id,
+          archived: Boolean(row.archived),
+        },
         createdAt,
         updatedAt,
       };
