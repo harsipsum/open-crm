@@ -151,9 +151,7 @@ export function PersonAvatar({
 
 /** A value nobody has filled in. */
 export function EmptyValue() {
-  return (
-<span className="sr-only">None</span>
-  );
+  return <span className="sr-only">None</span>;
 }
 
 export function OwnerCell({ owner }: { owner: Owner | null }) {

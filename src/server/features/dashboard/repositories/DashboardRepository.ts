@@ -13,6 +13,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { db } from "@/db";
+import { dealAccessCondition } from "@/server/features/access/access";
 import { activity, company, deal, user } from "@/db/schema";
 import { countedIn } from "@/server/features/currency/repositories/DealConversionRepository";
 import { OPEN_DEAL_STAGES } from "@/shared/deal-stages";
@@ -30,6 +31,7 @@ export function dealsInScope(scope: DealScope): SQL {
   return (
     and(
       eq(deal.organizationId, scope.organizationId),
+      dealAccessCondition(),
       isNull(deal.archivedAt),
       scope.ownerId ? eq(deal.ownerId, scope.ownerId) : undefined,
     ) ?? sql`false`

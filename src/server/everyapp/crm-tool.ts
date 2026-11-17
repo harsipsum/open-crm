@@ -1,9 +1,15 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { ToolError, type ToolDefinition } from "@every-app/sdk/server";
 import { z } from "zod";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { resolveEveryAppUserContext } from "@/middleware/ensure-user/everyApp";
 import type { EnsuredUserContext } from "@/middleware/ensure-user/types";
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
+import { resolveAccess, runWithAccess } from "@/server/features/access/access";
+import {
+  auditDetail,
+  recordAudit,
+} from "@/server/features/access/AuditRepository";
 import { AppError, asAppError } from "@/server/lib/errors";
 import { RECORD_SOURCES } from "@/shared/crm-enums";
 import {
@@ -14,6 +20,26 @@ import { OWNER_FILTER_MAX } from "@/types/schemas/records";
 
 /** What a tool handler gets besides its input: the CRM's public origin. */
 type ToolCall = { origin: string };
+
+// The name a tool is registered under, for its audit rows (set by
+// `namedTools` in tools.ts, which knows the names).
+const toolName = new AsyncLocalStorage<string>();
+
+/** Wraps each tool so its handler knows its own name. */
+export function namedTools(
+  tools: Record<string, ToolDefinition>,
+): Record<string, ToolDefinition> {
+  return Object.fromEntries(
+    Object.entries(tools).map(([name, tool]) => [
+      name,
+      {
+        ...tool,
+        handler: (...args: Parameters<ToolDefinition["handler"]>) =>
+          toolName.run(name, () => tool.handler(...args)),
+      },
+    ]),
+  );
+}
 
 /**
  * One CRM tool: the handler runs as the caller, in the organization their
@@ -48,13 +74,35 @@ export function crmTool<
       serveEveryAppRequest(request, user, async () => {
         try {
           const context = await resolveEveryAppUserContext(user);
-          return await forOrganization(context.organizationId, () =>
-            definition.handler(
-              // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the SDK validated args against this tool's own input schema before calling
-              args as z.output<Input>,
-              context,
-              { origin: new URL(request.url).origin },
-            ),
+          // A member's agent sees and changes what the member does.
+          const access = await resolveAccess(context);
+          const audit = (outcome: "ok" | "error") =>
+            definition.risk === "read"
+              ? Promise.resolve()
+              : recordAudit({
+                  organizationId: context.organizationId,
+                  actorId: context.userId,
+                  actorKind: "member",
+                  action: `tool:${toolName.getStore() ?? "unknown"}`,
+                  ...auditDetail(args),
+                  outcome,
+                });
+          return await runWithAccess(access, () =>
+            forOrganization(context.organizationId, async () => {
+              try {
+                const result = await definition.handler(
+                  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- the SDK validated args against this tool's own input schema before calling
+                  args as z.output<Input>,
+                  context,
+                  { origin: new URL(request.url).origin },
+                );
+                await audit("ok");
+                return result;
+              } catch (error) {
+                await audit("error");
+                throw error;
+              }
+            }),
           );
         } catch (error) {
           const appError = asAppError(error);

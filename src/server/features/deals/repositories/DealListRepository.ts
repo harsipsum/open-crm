@@ -14,6 +14,7 @@ import {
 import { sum } from "remeda";
 import { db } from "@/db";
 import { company, deal, pipeline, pipelineStage, user } from "@/db/schema";
+import { dealAccessCondition } from "@/server/features/access/access";
 import { countedIn } from "@/server/features/currency/repositories/DealConversionRepository";
 import {
   dealCompanyColumns,
@@ -145,6 +146,7 @@ function searchWhere(organizationId: string, q: string): SQL | undefined {
 function scopeWhere(organizationId: string, input: DealListInput) {
   return and(
     eq(deal.organizationId, organizationId),
+    dealAccessCondition(),
     archivedCondition(deal.archivedAt, input.archived),
     searchWhere(organizationId, input.q),
   );

@@ -1,5 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireOrgPermission } from "@/server/auth/org-gate";
+import {
+  requireAssignable,
+  requireOrgPermission,
+} from "@/server/auth/org-gate";
+import { auditExport } from "@/server/features/access/AuditRepository";
 import { ContactService } from "@/server/features/contacts/services/ContactService";
 import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
 import {
@@ -20,9 +24,10 @@ import {
 export const listContacts = createServerFn({ method: "GET" })
   .middleware(requireAuthenticatedContext)
   .validator(contactListSchema)
-  .handler(({ data, context }) =>
-    ContactService.listContacts(context.organizationId, data),
-  );
+  .handler(async ({ data, context }) => {
+    if (data.forExport) await auditExport(context, "contacts", data.page);
+    return ContactService.listContacts(context.organizationId, data);
+  });
 
 export const getContact = createServerFn({ method: "GET" })
   .middleware(requireAuthenticatedContext)
@@ -34,16 +39,18 @@ export const getContact = createServerFn({ method: "GET" })
 export const createContact = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)
   .validator(createContactSchema)
-  .handler(({ data, context }) =>
-    ContactService.createContact(context.organizationId, data),
-  );
+  .handler(({ data, context }) => {
+    requireAssignable(context, data.ownerId);
+    return ContactService.createContact(context.organizationId, data);
+  });
 
 export const updateContact = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)
   .validator(updateContactSchema)
-  .handler(({ data, context }) =>
-    ContactService.updateContact(context.organizationId, data),
-  );
+  .handler(({ data, context }) => {
+    requireAssignable(context, data.ownerId);
+    return ContactService.updateContact(context.organizationId, data);
+  });
 
 export const archiveContact = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)
@@ -70,13 +77,14 @@ export const purgeContact = createServerFn({ method: "POST" })
 export const bulkAssignContactOwner = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)
   .validator(bulkOwnerSchema)
-  .handler(({ data, context }) =>
-    ContactService.bulkAssignOwner(
+  .handler(({ data, context }) => {
+    requireAssignable(context, data.ownerId);
+    return ContactService.bulkAssignOwner(
       context.organizationId,
       data.ids,
       data.ownerId,
-    ),
-  );
+    );
+  });
 
 export const bulkSetContactCompany = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)

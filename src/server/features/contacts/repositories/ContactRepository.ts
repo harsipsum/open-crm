@@ -12,6 +12,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { db } from "@/db";
+import { contactAccessCondition } from "@/server/features/access/access";
 import { runBatch } from "@/db/runBatch";
 import { company, contact, suppressedContact, user } from "@/db/schema";
 import type { RecordSource } from "@/shared/crm-enums";
@@ -77,8 +78,14 @@ function orderOf(input: ContactListInput): SQL[] {
   ];
 }
 
+// Narrowed to the contacts the member this request is for may see
+// (src/server/features/access/access.ts): to them, any other is not there.
 function inOrganization(organizationId: string, id: string) {
-  return and(eq(contact.organizationId, organizationId), eq(contact.id, id));
+  return and(
+    eq(contact.organizationId, organizationId),
+    eq(contact.id, id),
+    contactAccessCondition(),
+  );
 }
 
 // The contact's company, from the same organization (a contact's company
@@ -138,6 +145,7 @@ function companyCondition(values: string[]): SQL | undefined {
 function scopeWhere(organizationId: string, input: ContactListInput) {
   return and(
     eq(contact.organizationId, organizationId),
+    contactAccessCondition(),
     archivedCondition(contact.archivedAt, input.archived),
     searchWords(input.q),
   );
@@ -417,6 +425,7 @@ async function archive(organizationId: string, ids: string[]) {
           eq(contact.organizationId, organizationId),
           inArray(contact.id, part),
           isNull(contact.archivedAt),
+          contactAccessCondition(),
         ),
       )
       .returning({ id: contact.id });
@@ -460,6 +469,7 @@ async function setOwner(
         and(
           eq(contact.organizationId, organizationId),
           inArray(contact.id, part),
+          contactAccessCondition(),
         ),
       )
       .returning({ id: contact.id });

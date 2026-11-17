@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { requireOrgPermission } from "@/server/auth/org-gate";
+import type { CrmRole } from "@/shared/crm-roles";
+import { AppError } from "@/server/lib/errors";
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import {
   ExportRepository,
@@ -414,13 +415,17 @@ const DATASETS: Record<
   },
 };
 
-/** One page of one dataset of the caller's organization: owners only. */
+/**
+ * One page of one dataset of the caller's organization: CRM admins only,
+ * since it is everything, past every member's scope. `crmRole` is the
+ * caller's Access role (src/server/features/access/access.ts).
+ */
 async function page(
-  caller: { organizationId: string; role: string },
+  caller: { organizationId: string; crmRole: CrmRole },
   dataset: ExportDataset,
   cursor: string | null,
 ): Promise<ExportPage> {
-  requireOrgPermission(caller, { workspace: ["export"] });
+  if (caller.crmRole !== "admin") throw new AppError("FORBIDDEN");
   const range = { after: cursor, limit: PAGE_SIZE[dataset] };
   const { ids, header, rows } = await DATASETS[dataset](
     caller.organizationId,

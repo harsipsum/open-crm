@@ -1,5 +1,9 @@
 import { and, asc, count, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
+import {
+  contactAccessCondition,
+  dealAccessCondition,
+} from "@/server/features/access/access";
 import { contact, deal, user } from "@/db/schema";
 import { ownerColumns } from "@/server/features/records/listQuery";
 import { DEAL_STAGE_ORDER, OPEN_DEAL_STAGES } from "@/shared/deal-stages";
@@ -25,6 +29,7 @@ async function listContacts(organizationId: string, companyId: string) {
     .where(
       and(
         eq(contact.organizationId, organizationId),
+        contactAccessCondition(),
         eq(contact.companyId, companyId),
         isNull(contact.archivedAt),
       ),
@@ -66,6 +71,7 @@ async function listDeals(organizationId: string, companyId: string) {
     .where(
       and(
         eq(deal.organizationId, organizationId),
+        dealAccessCondition(),
         eq(deal.companyId, companyId),
         isNull(deal.archivedAt),
       ),
@@ -93,6 +99,7 @@ async function countDeals(organizationId: string, companyId: string) {
     .where(
       and(
         eq(deal.organizationId, organizationId),
+        dealAccessCondition(),
         eq(deal.companyId, companyId),
       ),
     );
@@ -115,6 +122,7 @@ async function findContact(organizationId: string, contactId: string) {
     .where(
       and(
         eq(contact.organizationId, organizationId),
+        contactAccessCondition(),
         eq(contact.id, contactId),
       ),
     )

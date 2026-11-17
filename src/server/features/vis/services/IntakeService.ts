@@ -1,4 +1,5 @@
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
+import { loadTeam } from "@/server/features/access/access";
 import { ActivityRepository } from "@/server/features/activities/repositories/ActivityRepository";
 import { CompanyService } from "@/server/features/companies/services/CompanyService";
 import { ContactService } from "@/server/features/contacts/services/ContactService";
@@ -53,13 +54,21 @@ async function requirePipeline(organizationId: string) {
 }
 
 /**
- * The owner a new lead goes to: the member named, else whoever holds the
- * fewest Star CRM leads (round robin over the members).
+ * The owner a new lead goes to on arrival: the member named (unless they
+ * left), else whichever working seller holds the fewest Star CRM leads. With
+ * no sellers set up yet, the round robin runs over every working member.
  */
 async function ownerFor(organizationId: string, ownerEmail?: string) {
-  const members = await AuthRepository.listMembers(organizationId);
-  if (members.length === 0) {
-    throw new AppError("VALIDATION_ERROR", "The CRM has no members yet.");
+  const [members, team] = await Promise.all([
+    AuthRepository.listMembers(organizationId),
+    loadTeam(organizationId),
+  ]);
+  const left = new Set(
+    team.filter((row) => row.leftAt).map((row) => row.userId),
+  );
+  const working = members.filter((member) => !left.has(member.userId));
+  if (working.length === 0) {
+    throw new AppError("VALIDATION_ERROR", "The CRM has no working members.");
   }
   if (ownerEmail) {
     const named = members.find(
@@ -68,15 +77,21 @@ async function ownerFor(organizationId: string, ownerEmail?: string) {
     if (!named) {
       throw new AppError("VALIDATION_ERROR", `No member is ${ownerEmail}.`);
     }
-    return named.userId;
+    if (!left.has(named.userId)) return named.userId;
   }
+  const sellers = new Set(
+    team.filter((row) => row.role === "seller").map((row) => row.userId),
+  );
+  const pool = working.some((member) => sellers.has(member.userId))
+    ? working.filter((member) => sellers.has(member.userId))
+    : working;
   const deals = await VisRepository.trackedDeals(organizationId);
-  const load = new Map(members.map((member) => [member.userId, 0]));
+  const load = new Map(pool.map((member) => [member.userId, 0]));
   for (const row of deals) {
     if (load.has(row.ownerId))
       load.set(row.ownerId, (load.get(row.ownerId) ?? 0) + 1);
   }
-  let pick = members[0].userId;
+  let pick = pool[0].userId;
   for (const [userId, count] of load) {
     if (count < (load.get(pick) ?? 0)) pick = userId;
   }

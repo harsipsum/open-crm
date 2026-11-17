@@ -70,7 +70,7 @@ export function WebsiteActivity({ record }: { record: WebsiteActivityInput }) {
                 {topPage.path}
               </span>
               <span className="shrink-0 text-muted-foreground">
-               , <span className="tabular-nums">{topPage.views}</span>{" "}
+                , <span className="tabular-nums">{topPage.views}</span>{" "}
                 {topPage.views === 1 ? "view" : "views"}
               </span>
             </span>

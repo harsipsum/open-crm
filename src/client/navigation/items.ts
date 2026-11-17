@@ -1,6 +1,7 @@
 import {
   Building2,
   CircleDollarSign,
+  ListTodo,
   LayoutDashboard,
   Settings,
   Users,
@@ -41,6 +42,7 @@ export const navItems: NavItem[] = [
     link: linkOptions({ to: "/deals" }),
     dealsOnly: true,
   },
+  { label: "Tasks", icon: ListTodo, link: linkOptions({ to: "/tasks" }) },
 ];
 
 /** Workspace utilities stay at the sidebar's foot. */

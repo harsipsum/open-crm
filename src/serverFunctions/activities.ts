@@ -5,11 +5,20 @@ import {
   capturedIdSchema,
   completeTaskSchema,
   createActivitySchema,
+  myTasksSchema,
   timelineSchema,
 } from "@/types/schemas/activities";
 
 // Every member works the timeline: they log activities on any of the
 // organization's records and tick off any of its tasks.
+
+/** The open tasks the member set, soonest due first. */
+export const getMyTasks = createServerFn({ method: "GET" })
+  .middleware(requireAuthenticatedContext)
+  .validator(myTasksSchema)
+  .handler(({ data, context }) =>
+    ActivityService.myTasks(context.organizationId, context.userId, data),
+  );
 
 export const getTimeline = createServerFn({ method: "GET" })
   .middleware(requireAuthenticatedContext)

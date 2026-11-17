@@ -12,6 +12,8 @@ import {
 import { Spinner } from "@/client/components/ui/spinner";
 import { fieldsQueryOptions } from "@/client/features/fields/fieldQueries";
 import { membersQueryOptions } from "@/client/features/members/memberQueries";
+import { workspaceQueryOptions } from "@/client/features/workspace/workspaceQueries";
+import { canExport } from "@/shared/crm-roles";
 import { buildCsv, type CsvValue } from "@/client/lib/csv";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import type { FieldEntity } from "@/shared/crm-enums";
@@ -53,6 +55,7 @@ export function CsvMenu<
   const noun = ENTITY_NOUNS[entity];
   const fields = useQuery(fieldsQueryOptions(entity));
   const members = useQuery(membersQueryOptions());
+  const crmRole = useQuery(workspaceQueryOptions()).data?.crmRole;
   const [pending, setPending] = useState(false);
 
   const exportList = async () => {
@@ -124,10 +127,15 @@ export function CsvMenu<
           <Upload />
           Import CSV
         </DropdownMenuItem>
-        <DropdownMenuItem disabled={pending} onClick={() => void exportList()}>
-          <Download />
-          Export CSV
-        </DropdownMenuItem>
+        {crmRole && canExport(crmRole) ? (
+          <DropdownMenuItem
+            disabled={pending}
+            onClick={() => void exportList()}
+          >
+            <Download />
+            Export CSV
+          </DropdownMenuItem>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

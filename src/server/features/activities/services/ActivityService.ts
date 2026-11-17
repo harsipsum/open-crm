@@ -4,7 +4,7 @@ import type { ActivityEntry } from "@/server/features/activities/repositories/ac
 import { CaptureRepository } from "@/server/features/activities/repositories/CaptureRepository";
 import { ArchiveRepository } from "@/server/features/archive/repositories/ArchiveRepository";
 import { blankToNull } from "@/server/features/records/recordRules";
-import { AppError } from "@/server/lib/errors";
+import { AppError, UserFacingError } from "@/server/lib/errors";
 import { hasOrgPermission } from "@/shared/org-permissions";
 import type { RecordRef } from "@/shared/records";
 import {
@@ -110,7 +110,13 @@ async function completeTask(
     completed ? new Date().toISOString() : null,
   );
   if (!changed) {
-    await requireEntry(organizationId, id);
+    const entry = await requireEntry(organizationId, id);
+    if (entry.type === "TASK") {
+      throw new UserFacingError(
+        "FORBIDDEN",
+        "Someone else's task. Its owner or their manager ticks it off.",
+      );
+    }
     throw new AppError("VALIDATION_ERROR", "Only tasks can be completed.");
   }
   return requireEntry(organizationId, id);

@@ -210,7 +210,9 @@ export function ContactsPage() {
                 entity="CONTACT"
                 columns={CONTACT_EXPORT}
                 fetchPage={(page, pageSize) =>
-                  listContacts({ data: { ...input, page, pageSize } })
+                  listContacts({
+                    data: { ...input, page, pageSize, forExport: true },
+                  })
                 }
                 onImport={() => setImporting(true)}
               />

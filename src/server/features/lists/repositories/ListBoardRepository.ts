@@ -1,5 +1,6 @@
 import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { contactAccessCondition } from "@/server/features/access/access";
 import {
   company,
   contact,
@@ -40,6 +41,7 @@ async function board(
     eq(listEntry.organizationId, organizationId),
     eq(listEntry.listId, list.id),
     isNull(table.archivedAt),
+    list.entity === "CONTACT" ? contactAccessCondition() : undefined,
     stageCondition(filter.stage),
     filter.due ? due : undefined,
   );
@@ -118,6 +120,7 @@ async function cardsFor(
         .where(
           and(
             eq(contact.organizationId, organizationId),
+            contactAccessCondition(),
             inArray(contact.id, part),
           ),
         );

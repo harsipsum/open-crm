@@ -211,7 +211,9 @@ export function CompaniesPage() {
                 entity="COMPANY"
                 columns={COMPANY_EXPORT}
                 fetchPage={(page, pageSize) =>
-                  listCompanies({ data: { ...input, page, pageSize } })
+                  listCompanies({
+                    data: { ...input, page, pageSize, forExport: true },
+                  })
                 }
                 onImport={() => setImporting(true)}
               />

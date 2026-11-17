@@ -11,6 +11,7 @@ import {
   emailThread,
   user,
 } from "@/db/schema";
+import { activityAccessCondition } from "@/server/features/access/access";
 
 // How an activity reads everywhere it shows (timelines, My tasks, Home): the
 // row with its author and the records, thread and meeting it is about.
@@ -105,7 +106,7 @@ export function selectEntries(where: SQL | undefined) {
         eq(calendarEvent.organizationId, activity.organizationId),
       ),
     )
-    .where(and(where, visibleActivity()));
+    .where(and(where, visibleActivity(), activityAccessCondition()));
 }
 
 /** Archived imported notes remain preserved without entering live timelines. */

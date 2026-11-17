@@ -22,6 +22,7 @@ import {
   listStage,
   recordList,
 } from "@/db/schema";
+import { contactAccessCondition } from "@/server/features/access/access";
 import { dueCondition } from "@/server/features/lists/repositories/listConditions";
 import { idChunks } from "@/server/features/records/recordRules";
 import type { ListEntity } from "@/shared/crm-enums";
@@ -35,6 +36,24 @@ const recordTable = (entity: ListEntity) =>
   entity === "CONTACT" ? contact : company;
 const entryKey = (entity: ListEntity) =>
   entity === "CONTACT" ? listEntry.contactId : listEntry.companyId;
+
+/** Entries the current member may see: a hidden contact's stay out of reach. */
+function visibleEntry(entity: ListEntity) {
+  const visible = entity === "CONTACT" ? contactAccessCondition() : undefined;
+  if (!visible) return undefined;
+  return exists(
+    db
+      .select({ one: contact.id })
+      .from(contact)
+      .where(
+        and(
+          eq(contact.id, listEntry.contactId),
+          eq(contact.organizationId, listEntry.organizationId),
+          visible,
+        ),
+      ),
+  );
+}
 
 /** The live records of `entity` among `ids` that are the organization's. */
 async function liveRecordIds(
@@ -53,6 +72,7 @@ async function liveRecordIds(
           eq(table.organizationId, organizationId),
           inArray(table.id, part),
           isNull(table.archivedAt),
+          entity === "CONTACT" ? contactAccessCondition() : undefined,
         ),
       );
     found.push(...rows.map((row) => row.id));
@@ -78,6 +98,7 @@ async function entriesFor(
           eq(listEntry.organizationId, organizationId),
           eq(listEntry.listId, listId),
           inArray(key, part),
+          visibleEntry(entity),
         ),
       );
     for (const row of rows)
@@ -138,6 +159,7 @@ async function remove(
           eq(listEntry.organizationId, organizationId),
           eq(listEntry.listId, listId),
           inArray(key, part),
+          visibleEntry(entity),
         ),
       )
       .returning({ id: listEntry.id });
@@ -291,6 +313,7 @@ async function membershipsOf(
           eq(listEntry.organizationId, organizationId),
           inArray(key, part),
           isNull(recordList.archivedAt),
+          entity === "CONTACT" ? contactAccessCondition() : undefined,
         ),
       )
       .orderBy(asc(sql`lower(${recordList.name})`));

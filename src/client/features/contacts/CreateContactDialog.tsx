@@ -12,7 +12,10 @@ import {
   CompanyPicker,
   type CompanyOption,
 } from "@/client/features/records/CompanyPicker";
-import { ownerIdOf, useOwnerOptions } from "@/client/features/records/owners";
+import {
+  ownerIdOf,
+  useAssignableOptions,
+} from "@/client/features/records/owners";
 import { useInvalidateRecords } from "@/client/features/records/recordQueries";
 import {
   getErrorCode,
@@ -69,7 +72,7 @@ export function CreateContactDialog({
   onCreated: (contact: { id: string }) => void;
 }) {
   const invalidate = useInvalidateRecords();
-  const owners = useOwnerOptions();
+  const owners = useAssignableOptions(null);
   const mutation = useMutation({
     mutationFn: (values: FormValues) =>
       createContact({

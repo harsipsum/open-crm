@@ -13,6 +13,7 @@ import { sortBy } from "remeda";
 import { db } from "@/db";
 import { runBatch } from "@/db/runBatch";
 import { deal, pipeline, pipelineStage } from "@/db/schema";
+import { dealAccessCondition } from "@/server/features/access/access";
 import type { DealStage, StageKind } from "@/shared/crm-enums";
 import { roundMoney } from "@/shared/currency";
 import { OPEN_DEAL_STAGES } from "@/shared/deal-stages";
@@ -231,6 +232,7 @@ async function summary(organizationId: string) {
           eq(deal.organizationId, organizationId),
           isNull(deal.archivedAt),
           isNotNull(deal.pipelineStageId),
+          dealAccessCondition(),
         ),
       )
       .groupBy(deal.pipelineStageId, deal.currency),

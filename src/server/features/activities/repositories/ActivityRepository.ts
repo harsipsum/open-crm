@@ -15,6 +15,12 @@ import { db } from "@/db";
 import { runBatch } from "@/db/runBatch";
 import { activity, company, contact, deal } from "@/db/schema";
 import {
+  activityAccessCondition,
+  contactAccessCondition,
+  dealAccessCondition,
+  taskAccessCondition,
+} from "@/server/features/access/access";
+import {
   selectEntries,
   timelineAt,
   toEntry,
@@ -149,7 +155,7 @@ async function counts(organizationId: string, record: RecordRef) {
       meetings: tally("meetings"),
     })
     .from(activity)
-    .where(about(organizationId, record));
+    .where(and(about(organizationId, record), activityAccessCondition()));
   return (
     row ?? {
       all: 0,
@@ -303,6 +309,7 @@ async function setCompleted(
         eq(activity.organizationId, organizationId),
         eq(activity.id, id),
         eq(activity.type, "TASK"),
+        taskAccessCondition(),
       ),
     )
     .returning({ id: activity.id });
@@ -329,7 +336,11 @@ async function update(
     .update(activity)
     .set({ ...patch, updatedAt: new Date().toISOString() })
     .where(
-      and(eq(activity.organizationId, organizationId), eq(activity.id, id)),
+      and(
+        eq(activity.organizationId, organizationId),
+        eq(activity.id, id),
+        activityAccessCondition(),
+      ),
     )
     .returning({ id: activity.id });
   return rows.length > 0;
@@ -340,7 +351,11 @@ async function remove(organizationId: string, id: string): Promise<boolean> {
   const rows = await db
     .delete(activity)
     .where(
-      and(eq(activity.organizationId, organizationId), eq(activity.id, id)),
+      and(
+        eq(activity.organizationId, organizationId),
+        eq(activity.id, id),
+        activityAccessCondition(),
+      ),
     )
     .returning({ id: activity.id });
   return rows.length > 0;
@@ -372,7 +387,13 @@ async function recordCompany(
     .select({ companyId: table.companyId })
     .from(table)
     .where(
-      and(eq(table.organizationId, organizationId), eq(table.id, record.id)),
+      and(
+        eq(table.organizationId, organizationId),
+        eq(table.id, record.id),
+        record.kind === "contact"
+          ? contactAccessCondition()
+          : dealAccessCondition(),
+      ),
     )
     .limit(1);
   return row ?? null;

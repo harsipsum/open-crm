@@ -147,9 +147,7 @@ function ListRow({ list }: { list: ListSummary }) {
               </li>
             ))}
             {list.noStage > 0 ? (
-              <li>
-                {`No stage ${list.noStage.toLocaleString()}`}
-              </li>
+              <li>{`No stage ${list.noStage.toLocaleString()}`}</li>
             ) : null}
           </ul>
         </>

@@ -1,4 +1,5 @@
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
+import { currentAccess } from "@/server/features/access/access";
 import { CompanyRepository } from "@/server/features/companies/repositories/CompanyRepository";
 import {
   FieldDefinitionRepository,
@@ -6,6 +7,7 @@ import {
 } from "@/server/features/fields/repositories/FieldDefinitionRepository";
 import type { FieldWrite } from "@/server/features/fields/repositories/FieldValueRepository";
 import { asAppError } from "@/server/lib/errors";
+import { canAssignOthers } from "@/shared/crm-roles";
 import type { FieldEntity } from "@/shared/crm-enums";
 import { domainFromEmail, normalizeDomain } from "@/shared/domain";
 import { parseFieldValue } from "@/shared/fields";
@@ -189,7 +191,7 @@ function timestampCell(
 }
 
 /** The member a cell names, by email or name; null for a blank cell. */
-export function memberOf(run: ImportRun, raw: string | null): string | null {
+function findMember(run: ImportRun, raw: string | null) {
   if (!raw) return null;
   const wanted = raw.toLowerCase();
   const found =
@@ -197,6 +199,23 @@ export function memberOf(run: ImportRun, raw: string | null): string | null {
     run.members.find((member) => member.name.toLowerCase() === wanted);
   if (!found) {
     throw new RowError(`Nobody in this workspace is called "${raw}".`);
+  }
+  return found;
+}
+
+/** The owner a cell names; a seller can only name themselves. */
+export function memberOf(run: ImportRun, raw: string | null): string | null {
+  const found = findMember(run, raw);
+  if (!found) return null;
+  const access = currentAccess();
+  if (
+    access &&
+    found.userId !== access.userId &&
+    !canAssignOthers(access.role)
+  ) {
+    throw new RowError(
+      `Sellers own what they import. A manager or admin gives records to ${found.name}.`,
+    );
   }
   return found.userId;
 }
@@ -215,7 +234,9 @@ export function customValues(
       throw new RowError(`There is no custom field "${key}".`);
     }
     const input =
-      definition.type === "USER" ? memberOf(run, raw.trim()) : raw.trim();
+      definition.type === "USER"
+        ? (findMember(run, raw.trim())?.userId ?? null)
+        : raw.trim();
     const parsed = parseFieldValue(
       {
         ...definition,
