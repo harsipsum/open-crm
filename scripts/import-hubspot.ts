@@ -106,26 +106,39 @@ export async function runImport({
   }
   const before = await crm(`counts?portalId=${portalId}`);
   async function objects(objectType: string, records: SourceRecord[]) {
-    for (let i = 0; i < records.length; i += 25) {
-      const batch = records.slice(i, i + 25);
-      // Bound by bytes too: a large source note must not be dropped.
-      if (
-        Buffer.byteLength(JSON.stringify(batch)) > 1900000 &&
-        batch.length > 1
-      ) {
-        for (const row of batch) await objects(objectType, [row]);
-        continue;
-      }
-      const result = await crm("objects", { objectType, records: batch });
-      if (
-        typeof result.received !== "number" ||
-        typeof result.created !== "number"
-      )
-        throw new Error("Invalid import receipt");
-      receipt.imported[objectType] =
-        (receipt.imported[objectType] ?? 0) + result.received;
-      receipt.created[objectType] =
-        (receipt.created[objectType] ?? 0) + result.created;
+    // Owners can share an email across historical IDs, so resolve them in order.
+    if (objectType === "owners" && records.length > 25) {
+      for (let i = 0; i < records.length; i += 25)
+        await objects(objectType, records.slice(i, i + 25));
+      return;
+    }
+    for (let i = 0; i < records.length; i += 75) {
+      // Three disjoint source-ID batches at most, each transaction stays at 25.
+      await Promise.all(
+        [0, 25, 50]
+          .filter((offset) => i + offset < records.length)
+          .map(async (offset) => {
+            const batch = records.slice(i + offset, i + offset + 25);
+            // Bound by bytes too: a large source note must not be dropped.
+            if (
+              Buffer.byteLength(JSON.stringify(batch)) > 1900000 &&
+              batch.length > 1
+            ) {
+              for (const row of batch) await objects(objectType, [row]);
+              return;
+            }
+            const result = await crm("objects", { objectType, records: batch });
+            if (
+              typeof result.received !== "number" ||
+              typeof result.created !== "number"
+            )
+              throw new Error("Invalid import receipt");
+            receipt.imported[objectType] =
+              (receipt.imported[objectType] ?? 0) + result.received;
+            receipt.created[objectType] =
+              (receipt.created[objectType] ?? 0) + result.created;
+          }),
+      );
     }
   }
   const ids: Record<string, string[]> = {};
