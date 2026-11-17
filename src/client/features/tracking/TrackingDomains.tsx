@@ -102,7 +102,7 @@ export function TrackingDomains({
                     {domain.lastSeenAt ? (
                       <RelativeTime date={domain.lastSeenAt} />
                     ) : (
-                      "—"
+                      "None"
                     )}
                   </TableCell>
                   {canManage ? (

@@ -85,7 +85,7 @@ export function TimelineEntry({
             ) : null}
           </div>
           <span className="shrink-0 text-xs text-muted-foreground">
-            <span className="hidden sm:inline">{activityAuthor(entry)} · </span>
+            <span className="hidden sm:inline">{activityAuthor(entry)}, </span>
             <time
               dateTime={when.toISOString()}
               title={FULL.format(when)}

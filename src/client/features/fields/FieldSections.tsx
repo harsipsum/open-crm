@@ -35,7 +35,7 @@ export function FieldHeader({
       <SheetTitle>{title}</SheetTitle>
       <SheetDescription>
         {coverage
-          ? `${noun.title} · ${coverage.filled} of ${coverage.total} filled`
+          ? `${noun.title}, ${coverage.filled} of ${coverage.total} filled`
           : noun.title}
       </SheetDescription>
     </SheetHeader>

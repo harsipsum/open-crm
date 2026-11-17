@@ -83,7 +83,7 @@ export function TablePagination<TSize extends number>({
         <span className="whitespace-nowrap">
           {formatRange(currentPage, pageSize, totalCount, pageRange)}
         </span>
-        {meta}
+        {meta ?? null}
         {isLoading ? <Spinner className="size-3.5" /> : null}
       </div>
 

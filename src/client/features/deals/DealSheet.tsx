@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { QueryError } from "@/client/components/QueryState";
-import { Badge } from "@/client/components/ui/badge";
 import { DealContacts } from "@/client/features/deals/DealContacts";
 import { DealOverview } from "@/client/features/deals/DealOverview";
 import { DealStageMenu } from "@/client/features/deals/DealStage";
@@ -70,14 +69,12 @@ export function DealSheet({ dealId }: { dealId: string }) {
                 </RecordLink>
               ),
               note: deal.archivedAt ? (
-                <Badge variant="secondary">Archived</Badge>
+                <span className="text-sm text-muted-foreground">Archived</span>
               ) : null,
               actions: (
                 <>
                   {deal.pipelineStage ? (
-                    <Badge variant="outline" className="h-8 px-3 text-sm">
-                      {deal.pipelineStage}
-                    </Badge>
+                    <span className="text-sm">{deal.pipelineStage}</span>
                   ) : (
                     <DealStageMenu
                       dealId={deal.id}

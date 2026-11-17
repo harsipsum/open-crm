@@ -31,13 +31,7 @@ import {
 // or unqualified deal asks for first (in the URL while it's asked:
 // `closeDeal` and `closeStage`), and the sheet's pipeline stepper.
 
-// Only a closed stage takes a colour, on its name: won reads green, lost red.
-const TEXT_TONE: Partial<Record<DealStage, string>> = {
-  CLOSED_WON: "text-success",
-  CLOSED_LOST: "text-destructive",
-};
-
-/** A stage by its name. */
+/** A stage, by name. */
 export function DealStageIndicator({
   stage,
   className,
@@ -46,7 +40,7 @@ export function DealStageIndicator({
   className?: string;
 }) {
   return (
-    <span className={cn("min-w-0 truncate", TEXT_TONE[stage], className)}>
+    <span className={cn("min-w-0 truncate", className)}>
       {DEAL_STAGE_LABELS[stage]}
     </span>
   );

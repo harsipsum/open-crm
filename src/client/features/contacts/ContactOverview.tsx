@@ -185,7 +185,7 @@ function WeKnowThem({ contact }: { contact: Contact }) {
           <Property label="Emails">
             <span className="tabular-nums">{emails}</span>
             <span className="text-muted-foreground">
-              {" · "}
+              {", "}
               {lastReplyAt ? (
                 <>
                   last reply <RelativeTime date={lastReplyAt} />
@@ -205,7 +205,7 @@ function WeKnowThem({ contact }: { contact: Contact }) {
           <Property label="Next meeting">
             {nextMeeting.title ?? "Meeting"}
             <span className="text-muted-foreground">
-              {" · "}
+              {", "}
               <LocalDateTime date={nextMeeting.startsAt} />
             </span>
           </Property>

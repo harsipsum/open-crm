@@ -13,7 +13,7 @@ import { EmptyValue, SubListOwner } from "@/client/features/records/cells";
 export function ContactDeals({ contact }: { contact: Contact }) {
   if (contact.deals.length === 0) return null;
   return (
-    <SheetSection title={`Deals · ${contact.deals.length}`}>
+    <SheetSection title={`Deals (${contact.deals.length})`}>
       <ul className="-mx-2 divide-y divide-border">
         {contact.deals.map((deal) => (
           <li
@@ -30,7 +30,7 @@ export function ContactDeals({ contact }: { contact: Contact }) {
               {deal.role || deal.expectedCloseDate ? (
                 <p className="truncate text-xs text-muted-foreground">
                   {deal.role}
-                  {deal.role && deal.expectedCloseDate ? " · " : null}
+                  {deal.role && deal.expectedCloseDate ? ", " : null}
                   {deal.expectedCloseDate ? (
                     <>
                       Closes <LocalDay date={deal.expectedCloseDate} />

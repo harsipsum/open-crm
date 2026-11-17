@@ -130,6 +130,8 @@ export function PersonAvatar({
   size?: Size;
 }) {
   const url = safeImageUrl(src);
+  // Without a photo, small initials only repeat the name beside them.
+  if (!url && size !== "lg") return null;
   return (
     <span
       className={cn(
@@ -150,10 +152,7 @@ export function PersonAvatar({
 /** A value nobody has filled in. */
 export function EmptyValue() {
   return (
-    <span className="text-muted-foreground">
-      <span aria-hidden>—</span>
-      <span className="sr-only">None</span>
-    </span>
+<span className="sr-only">None</span>
   );
 }
 

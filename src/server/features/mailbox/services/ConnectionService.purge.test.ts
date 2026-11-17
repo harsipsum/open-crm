@@ -150,7 +150,7 @@ describe("ConnectionService purges", () => {
         domain: "a.test",
         purge: false,
       }),
-    ).rejects.toThrow("That is our own domain — it is already excluded.");
+    ).rejects.toThrow("That is our own domain, so it is already excluded.");
 
     expect(
       await ConnectionService.suppressDomain("org_a", {

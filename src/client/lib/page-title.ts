@@ -9,5 +9,5 @@ export const PRODUCT_NAME = BRAND.appName;
 
 /** A route's `head`: its page's title in the tab, as "Companies · Star CRM". */
 export function pageHead(name: string) {
-  return { meta: [{ title: `${name} · ${PRODUCT_NAME}` }] };
+  return { meta: [{ title: `${name} | ${PRODUCT_NAME}` }] };
 }

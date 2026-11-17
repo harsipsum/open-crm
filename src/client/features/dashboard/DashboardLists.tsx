@@ -67,26 +67,20 @@ export function DealsInProgress({ summary }: { summary: DashboardSummary }) {
         <CardTitle>Open deals</CardTitle>
         {/* One row, centered on the title: the header is a title's height. */}
         <CardAction className="row-span-1 -my-0.75">
-          <Button
-            variant="outline"
-            size="sm"
-            nativeButton={false}
+          <Link
+            to="/deals"
+            search={{
+              status: "open",
+              owner:
+                summary.scope === "me" && account.data
+                  ? [account.data.userId]
+                  : undefined,
+            }}
             disabled={summary.scope === "me" && !account.data}
-            render={
-              <Link
-                to="/deals"
-                search={{
-                  status: "open",
-                  owner:
-                    summary.scope === "me" && account.data
-                      ? [account.data.userId]
-                      : undefined,
-                }}
-              />
-            }
+            className="text-sm font-medium text-primary hover:underline"
           >
             Deals
-          </Button>
+          </Link>
         </CardAction>
       </CardHeader>
       <CardContent>
@@ -110,7 +104,7 @@ export function DealsInProgress({ summary }: { summary: DashboardSummary }) {
                   {deal.name}
                 </RecordLink>
                 <span className="truncate text-xs text-muted-foreground">
-                  {deal.company.name} · {DEAL_STAGE_LABELS[deal.stage]}{" "}
+                  {deal.company.name}, {DEAL_STAGE_LABELS[deal.stage]},{" "}
                   <RelativeTime date={deal.stageChangedAt} />
                 </span>
                 {deal.followUpAt ? (
@@ -191,14 +185,12 @@ export function RecentActivity({
       <CardHeader>
         <CardTitle>Recent activity</CardTitle>
         <CardAction className="row-span-1 -my-0.75">
-          <Button
-            variant="outline"
-            size="sm"
-            nativeButton={false}
-            render={<Link to="/contacts" />}
+          <Link
+            to="/contacts"
+            className="text-sm font-medium text-primary hover:underline"
           >
             Directory
-          </Button>
+          </Link>
         </CardAction>
       </CardHeader>
       <Table className="table-fixed">

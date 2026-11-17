@@ -2,7 +2,7 @@ import { useState } from "react";
 import { revalidateLogic } from "@tanstack/react-form";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowRight, CircleDollarSign } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { FormDialog } from "@/client/components/FormDialog";
 import { useAppForm } from "@/client/components/form/useAppForm";
 import { Button } from "@/client/components/ui/button";
@@ -36,16 +36,13 @@ export function FirstFollowUp({
       >
         <FollowUpIllustration />
         <div className="w-full max-w-md space-y-3">
-          <p className="inline-flex max-w-full items-center gap-2 rounded-full bg-primary/5 px-3 py-1.5 text-sm text-primary">
-            <CircleDollarSign className="size-4 shrink-0" />
-            <span className="truncate">{deal.name}</span>
-          </p>
           <h2
             id="first-follow-up-title"
             className="text-2xl font-semibold tracking-tight sm:text-3xl"
           >
             Schedule your first follow-up
           </h2>
+          <p className="truncate text-muted-foreground">For {deal.name}</p>
         </div>
         <Button size="lg" onClick={() => setOpen(true)}>
           Add follow-up

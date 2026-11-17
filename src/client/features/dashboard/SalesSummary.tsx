@@ -122,21 +122,21 @@ export function SalesSummary({ summary }: { summary: DashboardSummary }) {
               label="Closed won this month"
               value={money(wonThisMonth.value)}
               delta={changeFrom(wonThisMonth.value, wonLastMonth.value)}
-              description={`${formatCount(wonThisMonth.count, "deal")}${wonLastMonth.count > 0 ? ` · ${money(wonLastMonth.value)} last month` : ""}`}
+              description={`${formatCount(wonThisMonth.count, "deal")}${wonLastMonth.count > 0 ? `, ${money(wonLastMonth.value)} last month` : ""}`}
             />
           ) : null}
           {pipeline.count > 0 ? (
             <StatTile
               label="Open pipeline"
               value={money(pipeline.total)}
-              description={`${formatCount(pipeline.count, "deal")}${closingThisMonth.count > 0 ? ` · ${money(closingThisMonth.value)} due this month` : ""}`}
+              description={`${formatCount(pipeline.count, "deal")}${closingThisMonth.count > 0 ? `, ${money(closingThisMonth.value)} due this month` : ""}`}
             />
           ) : null}
           {performance.winRate !== null ? (
             <StatTile
               label={`Win rate (${performance.windowDays}d)`}
               value={formatPercent(performance.winRate)}
-              description={`${performance.wins} won · ${performance.losses} lost`}
+              description={`${performance.wins} won, ${performance.losses} lost`}
             />
           ) : null}
           {performance.averageDeal !== null ? (

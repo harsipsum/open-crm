@@ -37,7 +37,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
     <div className="flex items-baseline justify-between gap-4 text-sm">
       <dt className="shrink-0 text-muted-foreground">{label}</dt>
       <dd className="min-w-0 text-right [overflow-wrap:anywhere]">
-        {value ?? "—"}
+        {value ?? "None"}
       </dd>
     </div>
   );
@@ -78,7 +78,7 @@ export function DealLead({ dealId }: { dealId: string }) {
 
   return (
     <>
-      <SheetSection title={`Lead · fit ${lead.fitScore}/100`}>
+      <SheetSection title={`Lead fit ${lead.fitScore}/100`}>
         <dl className="space-y-1">
           <Row
             label="Source"
@@ -103,7 +103,7 @@ export function DealLead({ dealId }: { dealId: string }) {
             label="Product"
             value={
               lead.product
-                ? `${PRODUCT_LABELS[lead.product]} · ${ORDER_TYPE_LABELS[lead.orderType]}`
+                ? `${PRODUCT_LABELS[lead.product]}, ${ORDER_TYPE_LABELS[lead.orderType]}`
                 : ORDER_TYPE_LABELS[lead.orderType]
             }
           />
@@ -164,7 +164,7 @@ export function DealLead({ dealId }: { dealId: string }) {
       ) : null}
 
       <SheetSection
-        title={`Research · ${usd(view.costPerLeadUsd)} this lead`}
+        title={`Research: ${usd(view.costPerLeadUsd)} this lead`}
         action={
           waiting ? (
             <Button
@@ -188,9 +188,9 @@ export function DealLead({ dealId }: { dealId: string }) {
                     : row.kind.toLowerCase()}
                 </span>
                 <span className="text-xs text-muted-foreground tabular-nums">
-                  {row.status.toLowerCase().replace("_", " ")} ·{" "}
+                  {row.status.toLowerCase().replace("_", " ")},{" "}
                   {usd(row.costUsd)}
-                  {row.filledByApp ? ` · via ${row.filledByApp}` : ""}
+                  {row.filledByApp ? `, via ${row.filledByApp}` : ""}
                 </span>
               </div>
               {row.summary ? (
@@ -221,7 +221,7 @@ export function DealLead({ dealId }: { dealId: string }) {
             {view.conversions.map((row) => (
               <Row
                 key={`${row.platform}:${row.event}`}
-                label={`${row.platform.toLowerCase()} · ${row.event.toLowerCase().replace("_", " ")}`}
+                label={`${row.platform.toLowerCase()}, ${row.event.toLowerCase().replace("_", " ")}`}
                 value={row.status.toLowerCase().replace("_", " ")}
               />
             ))}

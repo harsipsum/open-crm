@@ -176,7 +176,7 @@ export function describeTouch(touch: {
     touch.medium && touch.medium !== "direct" ? touch.medium : null;
   const parts = [touch.source, medium, touch.campaign].filter(Boolean);
 
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 function mediumFrom(value: string | null | undefined): Medium {

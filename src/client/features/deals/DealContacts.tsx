@@ -46,7 +46,7 @@ export function DealContacts({
 
   return (
     <SheetSection
-      title={`Contacts · ${deal.contacts.length}`}
+      title={`Contacts (${deal.contacts.length})`}
       action={
         adding ? null : (
           <Button variant="ghost" size="xs" onClick={() => setAdding(true)}>
@@ -84,7 +84,7 @@ export function DealContacts({
                     <p className="truncate text-xs text-muted-foreground">
                       {[contact.title, contact.email]
                         .filter(Boolean)
-                        .join(" · ")}
+                        .join(", ")}
                     </p>
                   ) : null}
                   <InlineField
@@ -141,7 +141,7 @@ function AddDealContact({
   const items = candidates.map((candidate) => ({
     value: candidate.id,
     label: candidate.title
-      ? `${fullName(candidate)} · ${candidate.title}`
+      ? `${fullName(candidate)}, ${candidate.title}`
       : fullName(candidate),
   }));
   const nobody = !options.isPending && candidates.length === 0;

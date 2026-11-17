@@ -155,7 +155,7 @@ function ContactActions({
 /** "Head of Security · Acme", without blanks. */
 function metaLine(parts: (string | null | undefined)[]): string | null {
   const shown = parts.flatMap((part) => (part?.trim() ? [part.trim()] : []));
-  return shown.length > 0 ? shown.join(" · ") : null;
+  return shown.length > 0 ? shown.join(", ") : null;
 }
 
 /** "Archived" and "Primary contact at Acme". */

@@ -61,7 +61,7 @@ export function CurrencySettings() {
 
 const CURRENCY_ITEMS = CURRENCIES.map(({ code, name }) => ({
   value: code,
-  label: `${code} ${name}`,
+  label: `${code}, ${name}`,
 }));
 
 const RECONVERTS = "Changing this re-converts every deal at today's rates.";
@@ -167,7 +167,7 @@ function CurrenciesInUse({ settings }: { settings: Settings }) {
                 <TableCell>
                   <span className="font-medium">{row.currency}</span>
                   <span className="text-muted-foreground">
-                    {row.name ? ` ${row.name}` : ""}
+                    {row.name ? `, ${row.name}` : ""}
                     {row.currency === reportingCurrency
                       ? ", reporting currency"
                       : ""}

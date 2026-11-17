@@ -1,6 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMutation } from "@tanstack/react-query";
-import { cn } from "cn";
 import {
   Select,
   SelectContent,
@@ -8,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/client/components/ui/select";
-import { LIST_DOT } from "@/client/features/lists/listColors";
 import { EmptyValue } from "@/client/features/records/cells";
 import { useInvalidateRecords } from "@/client/features/records/recordQueries";
 import type { ListSummary } from "@/server/features/lists/services/ListService";
@@ -37,24 +35,18 @@ function ListChipBadge({
   showStage?: boolean;
 }) {
   return (
-    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-xs">
-      <span
-        aria-hidden
-        className={cn("size-1.5 shrink-0 rounded-full", LIST_DOT[chip.color])}
-      />
-      <span className="truncate">
-        {chip.name}
-        {showStage && chip.stage ? (
-          <span className="text-muted-foreground"> · {chip.stage}</span>
-        ) : null}
-      </span>
+    <span className="max-w-full truncate text-sm">
+      {chip.name}
+      {showStage && chip.stage ? (
+        <span className="text-muted-foreground">: {chip.stage}</span>
+      ) : null}
     </span>
   );
 }
 
 export function DueBadge() {
   return (
-    <span className="inline-flex shrink-0 items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+    <span className="shrink-0 text-xs font-medium text-amber-700 dark:text-amber-300">
       Due
     </span>
   );

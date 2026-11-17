@@ -136,7 +136,7 @@ function metaLine(lead: ReactNode, parts: (string | null)[]): ReactNode {
       {lead}
       {rest.map((part, index) => (
         <span key={part}>
-          {index === 0 && !lead ? null : " · "}
+          {index === 0 && !lead ? null : ", "}
           {part}
         </span>
       ))}

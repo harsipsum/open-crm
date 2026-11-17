@@ -254,7 +254,7 @@ export function FieldEditor({
                   <form.Subscribe selector={(state) => state.values.label}>
                     {(label) => (
                       <span className="truncate font-mono text-xs text-muted-foreground">
-                        {field?.key ?? (fieldKeyFromLabel(label) || "—")}
+                        {field?.key ?? (fieldKeyFromLabel(label) || "")}
                       </span>
                     )}
                   </form.Subscribe>

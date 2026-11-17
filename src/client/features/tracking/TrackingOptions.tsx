@@ -206,7 +206,7 @@ export function TrafficSources() {
                     <TableRow key={`${row.source}|${row.medium ?? ""}`}>
                       <TableCell>{row.source}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {row.medium ?? "—"}
+                        {row.medium ?? "None"}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {row.views.toLocaleString("en-US")}

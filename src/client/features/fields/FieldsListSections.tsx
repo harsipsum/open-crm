@@ -84,7 +84,7 @@ export function SuggestedFields({
             className="flex items-center gap-2.5 px-4 py-1.5"
           >
             <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-              {template.label} ·{" "}
+              {template.label},{" "}
               {"options" in template
                 ? template.options.join(", ")
                 : FIELD_TYPE_LABELS[template.type]}

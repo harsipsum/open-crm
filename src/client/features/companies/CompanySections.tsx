@@ -69,7 +69,7 @@ export function CompanyContacts({
   const empty = company.contacts.length === 0;
   return (
     <SheetSection
-      title={`Contacts · ${company.contacts.length}`}
+      title={`Contacts (${company.contacts.length})`}
       action={
         adding ? null : (
           <AddButton
@@ -105,7 +105,7 @@ export function CompanyContacts({
                     {name}
                   </RecordLink>
                   <p className="truncate text-xs text-muted-foreground">
-                    {[contact.title, contact.email].filter(Boolean).join(" · ")}
+                    {[contact.title, contact.email].filter(Boolean).join(", ")}
                   </p>
                 </div>
                 <SubListOwner owner={contact.owner} />
@@ -143,7 +143,7 @@ export function CompanyDeals({ company }: { company: Company }) {
   const empty = company.deals.length === 0;
   return (
     <SheetSection
-      title={`Deals · ${company.deals.length}`}
+      title={`Deals (${company.deals.length})`}
       action={
         adding ? null : (
           <AddButton
