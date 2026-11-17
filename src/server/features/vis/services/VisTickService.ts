@@ -1,5 +1,4 @@
 import { VisRepository } from "@/server/features/vis/repositories/VisRepository";
-import { AsanaHandoffService } from "@/server/features/vis/services/AsanaHandoffService";
 import { OfflineConversionService } from "@/server/features/vis/services/OfflineConversionService";
 import { ResearchService } from "@/server/features/vis/services/ResearchService";
 import { SdrService } from "@/server/features/vis/services/SdrService";
@@ -76,7 +75,6 @@ async function tickOrganization(
         lead,
         person,
       });
-      await AsanaHandoffService.handOff(organizationId, row.id, origin);
     } catch (error) {
       summary.failed += 1;
       console.error("[vis] tick failed for a deal", {

@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { serveHubspotImport } from "@/server/features/hubspot/hubspotRoute";
 import { KeyService } from "@/server/features/vis/services/KeyService";
 import { IntakeService } from "@/server/features/vis/services/IntakeService";
 import { LeadMatchService } from "@/server/features/vis/services/LeadMatchService";
@@ -197,6 +198,8 @@ export function isVisApiPath(pathname: string) {
 
 /** Answers one API call; an AppError becomes its status and message. */
 export async function serveVisApi(request: Request): Promise<Response> {
+  if (new URL(request.url).pathname.startsWith("/api/vis/v1/hubspot/"))
+    return serveHubspotImport(request);
   try {
     return await route(request);
   } catch (error) {

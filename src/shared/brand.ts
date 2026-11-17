@@ -37,7 +37,7 @@ const PACKS = {
   // orange #E8441A, navy #1A2B3C.
   vistaros: {
     id: "vistaros",
-    appName: "VisCRM",
+    appName: "Star CRM",
     suiteName: "VisOS",
     logoUrl: null,
     colors: {

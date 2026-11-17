@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AsanaQueueRepository } from "../repositories/AsanaQueueRepository";
 import { DealService } from "@/server/features/deals/services/DealService";
 import { VisRepository } from "@/server/features/vis/repositories/VisRepository";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
@@ -54,9 +55,7 @@ async function asana(token: string, path: string, init?: RequestInit) {
   });
   const text = await response.text();
   if (!response.ok) {
-    throw new Error(
-      `Asana ${path} answered ${response.status}: ${text.slice(0, 300)}`,
-    );
+    throw new Error(`Asana request answered ${response.status}`);
   }
   return JSON.parse(text) as unknown;
 }
@@ -164,6 +163,15 @@ async function handOff(
   dealId: string,
   origin: string | null,
 ) {
+  if ((await getOptionalEnvValue("ASANA_WON_ENABLED")) !== "1") return null;
+  if (!(await AsanaQueueRepository.eligible(organizationId, dealId)))
+    return null;
+  if ((await AsanaQueueRepository.today(organizationId)) >= 100) {
+    console.error(
+      "[vis] Asana daily handoff cap reached; pending deals retained",
+    );
+    return null;
+  }
   const token = await getOptionalEnvValue("ASANA_TOKEN");
   const projectGid = await getOptionalEnvValue("ASANA_PROJECT_GID");
   if (!token || !projectGid) return null;
@@ -174,6 +182,7 @@ async function handOff(
   if (!(await VisRepository.claimHandoff(organizationId, dealId, projectGid))) {
     return null;
   }
+  let taskAttempted = false;
   try {
     const { found, lead, values } = await fieldValues(organizationId, dealId);
     const settings = await customFields(token, projectGid);
@@ -196,7 +205,7 @@ async function handOff(
         person.role,
       ]
         .filter(Boolean)
-        .join(" · "),
+        .join(", "),
     );
     const missing = Object.entries(values)
       .filter(([, value]) => value === null)
@@ -209,7 +218,7 @@ async function handOff(
       ...(contacts.length
         ? contacts.map((line) => `- ${line}`)
         : ["- (none on the deal)"]),
-      `Source: ${lead ? [lead.source, lead.campaign, lead.creativeId].filter(Boolean).join(" · ") : "unknown"}`,
+      `Source: ${lead ? [lead.source, lead.campaign, lead.creativeId].filter(Boolean).join(", ") : "HubSpot import"}`,
       `Deal owner: ${found.owner.name ?? found.owner.email}`,
       ...(origin ? [`CRM: ${origin}/deals/${dealId}`] : []),
       ...(missing.length
@@ -218,6 +227,7 @@ async function handOff(
     ].join("\n");
     const productLabel = lead?.product ? PRODUCT_LABELS[lead.product] : "Deal";
     const orderLabel = lead ? ORDER_TYPE_LABELS[lead.orderType] : "New";
+    taskAttempted = true;
     const task = taskAnswer.parse(
       await asana(token, "/tasks", {
         method: "POST",
@@ -248,8 +258,11 @@ async function handOff(
   } catch (error) {
     // Kept with its error, not retried every minute (no burn): a person
     // retries it from the deal once the cause is fixed.
-    const message =
-      error instanceof Error ? error.message.slice(0, 300) : "unknown";
+    const message = taskAttempted
+      ? "RECONCILE_REQUIRED: task creation outcome unknown. Check Asana before retry."
+      : error instanceof Error
+        ? error.message.slice(0, 300)
+        : "unknown";
     await VisRepository.finishHandoff(organizationId, dealId, {
       taskGid: null,
       taskUrl: null,
@@ -266,7 +279,9 @@ async function retry(
   dealId: string,
   origin: string | null,
 ) {
+  if ((await getOptionalEnvValue("ASANA_WON_ENABLED")) !== "1") return null;
   const found = await VisRepository.handoff(organizationId, dealId);
+  if (found?.error?.startsWith("RECONCILE_REQUIRED")) return null;
   if (found?.taskGid) return found.taskGid;
   // Only a handoff that failed is let go; one still in flight stays put.
   if (
@@ -278,4 +293,13 @@ async function retry(
   return handOff(organizationId, dealId, origin);
 }
 
-export const AsanaHandoffService = { handOff, retry };
+async function runDue() {
+  if ((await getOptionalEnvValue("ASANA_WON_ENABLED")) !== "1") return;
+  const org = await getOptionalEnvValue("EVERY_APP_ORG_ID");
+  if (!org) return;
+  const origin = (await getOptionalEnvValue("VIS_CRM_ORIGIN")) ?? null;
+  for (const row of await AsanaQueueRepository.pending(org))
+    await handOff(org, row.dealId, origin);
+}
+
+export const AsanaHandoffService = { handOff, retry, runDue };

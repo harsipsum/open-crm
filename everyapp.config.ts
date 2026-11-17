@@ -12,7 +12,7 @@
  */
 export default {
   id: "viscrm",
-  name: "VisCRM",
+  name: "Star CRM",
   description:
     "Companies, contacts and deals, with mail, meetings and website visits filed on them.",
   icon: "/viscrm-icon.svg",
@@ -52,6 +52,17 @@ export default {
   // Optional, each all or nothing: the CRM opens without any of them, and
   // the feature that needs one says so where it is used.
   features: {
+    "hubspot-import": {
+      name: "HubSpot migration",
+      why: "Silent source-ID upserts. Unset the key after migration.",
+      steps: ["Run scripts/import-hubspot.ts with this CRM URL and key."],
+      secrets: [
+        {
+          name: "HUBSPOT_IMPORT_KEY",
+          how: "Random migration-only key, at least 32 bytes.",
+        },
+      ],
+    },
     google: {
       name: "Gmail and Google Calendar",
       why: "Members connect their Gmail and Google Calendar, read only, so conversations and meetings are filed on companies and contacts.",
@@ -100,6 +111,10 @@ export default {
       steps: ["A service identity's Asana token and the intake project id."],
       secrets: [
         { name: "ASANA_TOKEN", how: "Service identity token." },
+        {
+          name: "ASANA_WON_ENABLED",
+          how: "1 enables new Won transitions; 0 disables all handoff and retry writes.",
+        },
         { name: "ASANA_PROJECT_GID", how: "Intake project id." },
         { name: "VIS_CRM_ORIGIN", how: "This CRM's https origin." },
       ],
