@@ -246,10 +246,10 @@ export async function runImport({
   }
   for (const type of TYPES) await copyType(type);
   async function copyPair(fromType: string, toType: string) {
-    for (let i = 0; i < ids[fromType].length; i += 100) {
+    for (let i = 0; i < ids[fromType].length; i += 1000) {
       const result = await hs.request(
         `/crm/v4/associations/${fromType}/${toType}/batch/read`,
-        { inputs: ids[fromType].slice(i, i + 100).map((id) => ({ id })) },
+        { inputs: ids[fromType].slice(i, i + 1000).map((id) => ({ id })) },
       );
       if (
         result.status !== "COMPLETE" ||

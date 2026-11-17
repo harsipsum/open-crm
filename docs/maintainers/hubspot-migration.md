@@ -36,6 +36,14 @@ Requests are paced below Starter's burst limit. Keep the same budget file
 across runs. An early stop preserves all committed batches; a replay upserts
 the same IDs. Remove the import key after reconciliation.
 
+Association reads use up to 1,000 source IDs per request, with per-record
+pagination preserved. This was checked against HubSpot's live v4 endpoint.
+The importer is a snapshot migration and replay, not continuous deletion sync.
+It retains previously imported edges if HubSpot removes a relationship. Every
+association replay compares the source and destination graph totals and stops
+on mismatch; reconcile removed links before calling that newer snapshot done.
+Do not delete retained source history to make a count pass.
+
 Imports call repositories directly and never use intake or stage services.
 They hold research, create no SDR timers or conversion events, and never queue
 Asana work. `asana_won_queue` is inserted atomically only when a normal stage
