@@ -1,4 +1,5 @@
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
+import { currentAccess } from "@/server/features/access/access";
 import { CompanyRepository } from "@/server/features/companies/repositories/CompanyRepository";
 import {
   FieldDefinitionRepository,
@@ -6,6 +7,7 @@ import {
 } from "@/server/features/fields/repositories/FieldDefinitionRepository";
 import type { FieldWrite } from "@/server/features/fields/repositories/FieldValueRepository";
 import { asAppError } from "@/server/lib/errors";
+import { canAssignOthers } from "@/shared/crm-roles";
 import type { FieldEntity } from "@/shared/crm-enums";
 import { domainFromEmail, normalizeDomain } from "@/shared/domain";
 import { parseFieldValue } from "@/shared/fields";
@@ -197,6 +199,16 @@ export function memberOf(run: ImportRun, raw: string | null): string | null {
     run.members.find((member) => member.name.toLowerCase() === wanted);
   if (!found) {
     throw new RowError(`Nobody in this workspace is called "${raw}".`);
+  }
+  const access = currentAccess();
+  if (
+    access &&
+    found.userId !== access.userId &&
+    !canAssignOthers(access.role)
+  ) {
+    throw new RowError(
+      `Sellers own what they import. A manager or admin gives records to ${found.name}.`,
+    );
   }
   return found.userId;
 }

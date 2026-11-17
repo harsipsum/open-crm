@@ -1,6 +1,6 @@
 import { and, count, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { contact, crmRole, deal } from "@/db/schema";
+import { activity, contact, crmRole, deal } from "@/db/schema";
 import { runBatch } from "@/db/runBatch";
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import { loadTeam } from "@/server/features/access/access";
@@ -153,7 +153,7 @@ async function setMemberLeft(
     await runBatch((tx) => [mark(tx)]);
     return {
       team: await getTeam(organizationId),
-      moved: { deals: 0, contacts: 0 },
+      moved: { deals: 0, contacts: 0, tasks: 0 },
     };
   }
   const heir = team.find((t) => t.userId === input.handTo);
@@ -174,9 +174,17 @@ async function setMemberLeft(
     eq(contact.ownerId, input.userId),
     isNull(contact.archivedAt),
   );
-  const [[deals], [contacts]] = await Promise.all([
+  // Their open follow-ups go with the book, so none waits on someone gone.
+  const openTasks = and(
+    eq(activity.organizationId, organizationId),
+    eq(activity.createdById, input.userId),
+    eq(activity.type, "TASK"),
+    isNull(activity.completedAt),
+  );
+  const [[deals], [contacts], [tasks]] = await Promise.all([
     db.select({ n: count() }).from(deal).where(openDeals),
     db.select({ n: count() }).from(contact).where(liveContacts),
+    db.select({ n: count() }).from(activity).where(openTasks),
   ]);
   await runBatch((tx) => [
     tx
@@ -187,9 +195,17 @@ async function setMemberLeft(
       .update(contact)
       .set({ ownerId: heir.userId, updatedAt: at })
       .where(liveContacts),
+    tx
+      .update(activity)
+      .set({ createdById: heir.userId, updatedAt: at })
+      .where(openTasks),
     mark(tx),
   ]);
-  const moved = { deals: deals?.n ?? 0, contacts: contacts?.n ?? 0 };
+  const moved = {
+    deals: deals?.n ?? 0,
+    contacts: contacts?.n ?? 0,
+    tasks: tasks?.n ?? 0,
+  };
   return { team: await getTeam(organizationId), moved };
 }
 

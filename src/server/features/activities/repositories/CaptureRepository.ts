@@ -1,4 +1,13 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import {
+  type AnyColumn,
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  or,
+} from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -11,6 +20,7 @@ import {
   member,
   user,
 } from "@/db/schema";
+import { contactAccessCondition } from "@/server/features/access/access";
 import { idChunks } from "@/server/features/records/recordRules";
 import { safeHostname } from "@/shared/safe-url";
 
@@ -113,6 +123,13 @@ const filedOn = {
  * One of the organization's email threads with the company and contact it
  * is filed on, and its messages, oldest first.
  */
+// Mail or a meeting filed on a contact the member can't see stays hidden.
+// Without a member (app key, cron) nothing is narrowed.
+function filedOnVisible(contactId: AnyColumn) {
+  const visible = contactAccessCondition();
+  return visible && or(isNull(contactId), visible);
+}
+
 async function thread(organizationId: string, threadId: string) {
   const [found] = await db
     .select({
@@ -142,6 +159,7 @@ async function thread(organizationId: string, threadId: string) {
       and(
         eq(emailThread.organizationId, organizationId),
         eq(emailThread.id, threadId),
+        filedOnVisible(emailThread.contactId),
       ),
     )
     .limit(1);
@@ -223,6 +241,7 @@ async function meeting(organizationId: string, eventId: string) {
       and(
         eq(calendarEvent.organizationId, organizationId),
         eq(calendarEvent.id, eventId),
+        filedOnVisible(calendarEvent.contactId),
       ),
     )
     .limit(1);

@@ -1,3 +1,4 @@
+import { assertSeesAll } from "@/server/features/access/access";
 import { ArchiveService } from "@/server/features/archive/services/ArchiveService";
 import { CompanyRepository } from "@/server/features/companies/repositories/CompanyRepository";
 import { ConversionService } from "@/server/features/currency/services/ConversionService";
@@ -131,6 +132,7 @@ async function orderPipelineStages(
   organizationId: string,
   input: { pipeline: string; stages: string[] },
 ) {
+  assertSeesAll();
   const id = await PipelineRepository.orderStages(
     organizationId,
     input.pipeline,
@@ -351,16 +353,13 @@ async function detachContact(
   dealId: string,
   contactId: string,
 ) {
+  await requireDeal(organizationId, dealId);
   if (
     !(await DealContactRepository.detach(organizationId, dealId, contactId))
   ) {
     throw new AppError("NOT_FOUND", "That contact is not on this deal.");
   }
-  console.log("[deals] contact detached", {
-    organizationId,
-    dealId,
-    contactId,
-  });
+  console.log("[deals] contact detached", { organizationId, dealId });
   return { dealId, contactId };
 }
 
@@ -368,6 +367,7 @@ async function setContactRole(
   organizationId: string,
   input: { dealId: string; contactId: string; role: string | null },
 ) {
+  await requireDeal(organizationId, input.dealId);
   const role = roleOf(input.role);
   if (
     !(await DealContactRepository.setRole(organizationId, { ...input, role }))

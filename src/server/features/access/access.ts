@@ -10,7 +10,15 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { db } from "@/db";
-import { contact, crmRole, deal, dealContact, member } from "@/db/schema";
+import {
+  activity,
+  contact,
+  crmRole,
+  deal,
+  dealContact,
+  member,
+} from "@/db/schema";
+import { AppError } from "@/server/lib/errors";
 import type { CrmRole } from "@/shared/crm-roles";
 
 // Record scoping. Every server function a member calls runs inside their
@@ -129,6 +137,54 @@ export async function resolveAccess(context: {
 }): Promise<Access> {
   const team = await loadTeam(context.organizationId);
   return accessFor(context.userId, context.role, team);
+}
+
+/** Throws FORBIDDEN unless the work is an admin's, an app key's or the cron's. */
+export function assertSeesAll(): void {
+  const access = currentAccess();
+  if (access && !access.seeAll) throw new AppError("FORBIDDEN");
+}
+
+/**
+ * The activities the current member may see and change: those not filed on a
+ * contact or deal they can't see. An activity on a company alone is shared,
+ * like the company. Undefined for all.
+ */
+export function activityAccessCondition(): SQL | undefined {
+  const access = currentAccess();
+  if (!access || access.seeAll) return undefined;
+  return and(
+    or(
+      isNull(activity.contactId),
+      exists(
+        db
+          .select({ one: contact.id })
+          .from(contact)
+          .where(
+            and(
+              eq(contact.id, activity.contactId),
+              eq(contact.organizationId, activity.organizationId),
+              contactAccessCondition(),
+            ),
+          ),
+      ),
+    ),
+    or(
+      isNull(activity.dealId),
+      exists(
+        db
+          .select({ one: deal.id })
+          .from(deal)
+          .where(
+            and(
+              eq(deal.id, activity.dealId),
+              eq(deal.organizationId, activity.organizationId),
+              dealAccessCondition(),
+            ),
+          ),
+      ),
+    ),
+  );
 }
 
 /** The deals the current member may see and change; undefined for all. */

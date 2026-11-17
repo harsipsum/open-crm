@@ -249,7 +249,7 @@ function LeaverDialog({
       toast.success(
         handTo === SHARED
           ? `Records of ${leaver.name} are in the shared pool.`
-          : `Handed over ${moved.deals} open deals and ${moved.contacts} contacts.`,
+          : `Handed over ${moved.deals} open deals, ${moved.contacts} contacts and ${moved.tasks} open tasks.`,
       );
       onClose();
     },

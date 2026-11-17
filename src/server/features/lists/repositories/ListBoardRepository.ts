@@ -41,6 +41,7 @@ async function board(
     eq(listEntry.organizationId, organizationId),
     eq(listEntry.listId, list.id),
     isNull(table.archivedAt),
+    list.entity === "CONTACT" ? contactAccessCondition() : undefined,
     stageCondition(filter.stage),
     filter.due ? due : undefined,
   );

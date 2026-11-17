@@ -13,6 +13,10 @@ import { chunk } from "remeda";
 import { db } from "@/db";
 import { runBatch } from "@/db/runBatch";
 import { company, contact, deal, fieldValue } from "@/db/schema";
+import {
+  contactAccessCondition,
+  dealAccessCondition,
+} from "@/server/features/access/access";
 import type { FieldEntity, FieldType } from "@/shared/crm-enums";
 import type { FieldValueJson } from "@/shared/fields";
 
@@ -111,7 +115,7 @@ export function storedValue(
   }
 }
 
-/** Whether the organization has this company, contact or deal. */
+/** Whether the organization has this company, contact or deal, and the member may see it. */
 async function recordExists(
   organizationId: string,
   entity: FieldEntity,
@@ -122,7 +126,15 @@ async function recordExists(
     .select({ id: record.id })
     .from(record.table)
     .where(
-      and(eq(record.organizationId, organizationId), eq(record.id, recordId)),
+      and(
+        eq(record.organizationId, organizationId),
+        eq(record.id, recordId),
+        entity === "CONTACT"
+          ? contactAccessCondition()
+          : entity === "DEAL"
+            ? dealAccessCondition()
+            : undefined,
+      ),
     )
     .limit(1);
   return Boolean(row);

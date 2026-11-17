@@ -93,6 +93,7 @@ async function setConsent(
   organizationId: string,
   input: { dealId: string; consent: ConsentState },
 ) {
+  await DealService.getDeal(organizationId, input.dealId);
   const lead = await VisRepository.attribution(organizationId, input.dealId);
   if (!lead) {
     throw new AppError("NOT_FOUND", "This deal has no Star CRM lead.");

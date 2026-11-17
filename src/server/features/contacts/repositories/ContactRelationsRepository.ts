@@ -97,6 +97,7 @@ async function setCompany(
         and(
           eq(contact.organizationId, organizationId),
           inArray(contact.id, part),
+          contactAccessCondition(),
         ),
       );
     const theirs = found.map((row) => row.id);

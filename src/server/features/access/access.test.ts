@@ -11,9 +11,20 @@ vi.mock("@/db", () => ({ db: database.db }));
 vi.mock("@/db/runBatch", () => database.runBatchModule);
 
 import { and, eq } from "drizzle-orm";
-import { deal } from "@/db/schema";
+import { activity, deal } from "@/db/schema";
+import { ActivityRepository } from "@/server/features/activities/repositories/ActivityRepository";
+import { FieldValueRepository } from "@/server/features/fields/repositories/FieldValueRepository";
+import {
+  memberOf,
+  type ImportRun,
+} from "@/server/features/imports/services/importRun";
 import { assertOwner } from "@/server/features/records/recordRules";
-import { dealAccessCondition, resolveAccess, runWithAccess } from "./access";
+import {
+  assertSeesAll,
+  dealAccessCondition,
+  resolveAccess,
+  runWithAccess,
+} from "./access";
 import { TeamService } from "./TeamService";
 
 const A = "org_a";
@@ -64,6 +75,8 @@ describe("record scoping", () => {
         ('d_s1', 'org_a', 'Seller one deal', 'acme', 's1'),
         ('d_s2', 'org_a', 'Seller two deal', 'acme', 's2'),
         ('d_pool', 'org_a', 'Pool deal', 'acme', 'old');
+      INSERT INTO activity (id, organization_id, type, subject, company_id, deal_id, created_by_id, created_at, updated_at) VALUES
+        ('t_s2', 'org_a', 'TASK', 'Call back', 'acme', 'd_s2', 's2', '2026-01-01', '2026-01-01');
     `);
   });
 
@@ -95,9 +108,60 @@ describe("record scoping", () => {
       left: true,
       handTo: "s1",
     });
-    expect(handed.moved).toEqual({ deals: 1, contacts: 0 });
+    expect(handed.moved).toEqual({ deals: 1, contacts: 0, tasks: 1 });
+    const [task] = await database.db
+      .select({ by: activity.createdById })
+      .from(activity)
+      .where(eq(activity.id, "t_s2"));
+    expect(task?.by).toBe("s1");
     expect(await visibleDeals("s1")).toEqual(["d_pool", "d_s1", "d_s2"]);
     expect(await visibleDeals("mgr")).toContain("d_s2");
+  });
+
+  it("keeps a hidden deal's activity, fields and pipeline settings out of reach", async () => {
+    const seller = await resolveAccess({
+      userId: "s1",
+      organizationId: A,
+      role: "member",
+    });
+    const mgr = await resolveAccess({
+      userId: "mgr",
+      organizationId: A,
+      role: "member",
+    });
+    await runWithAccess(seller, async () => {
+      expect(await ActivityRepository.findById(A, "t_s2")).toBeNull();
+      expect(await ActivityRepository.setCompleted(A, "t_s2", "now")).toBe(
+        false,
+      );
+      expect(await FieldValueRepository.recordExists(A, "DEAL", "d_s2")).toBe(
+        false,
+      );
+      expect(await FieldValueRepository.recordExists(A, "DEAL", "d_s1")).toBe(
+        true,
+      );
+      expect(() => assertSeesAll()).toThrow();
+    });
+    await runWithAccess(mgr, () => expect(() => assertSeesAll()).toThrow());
+    expect(await ActivityRepository.findById(A, "t_s2")).not.toBeNull();
+  });
+
+  it("stops a seller importing records for someone else", async () => {
+    const run = {
+      members: [
+        { userId: "s1", name: "Sam", email: "sam@a.test" },
+        { userId: "s2", name: "Sol", email: "sol@a.test" },
+      ],
+    } as ImportRun;
+    const seller = await resolveAccess({
+      userId: "s1",
+      organizationId: A,
+      role: "member",
+    });
+    runWithAccess(seller, () => {
+      expect(memberOf(run, "sam@a.test")).toBe("s1");
+      expect(() => memberOf(run, "sol@a.test")).toThrow(/Sellers own/);
+    });
   });
 
   it("refuses to let a seller give a record to someone else", async () => {
