@@ -220,4 +220,25 @@ describe("Star CRM flow", () => {
       (await KeyService.authenticate(again.key, "deals:read", A)).app,
     ).toBe("VISPROPOSALS");
   });
+
+  it("gives the website key new leads and nothing else", async () => {
+    const minted = await KeyService.mint(A, "VISWEB", "user_a");
+    expect(minted.scopes).toEqual(["leads:write"]);
+    expect(await KeyService.authenticate(minted.key, "leads:write", A)).toEqual(
+      {
+        organizationId: A,
+        app: "VISWEB",
+      },
+    );
+    for (const scope of [
+      "deals:read",
+      "notes:write",
+      "stage:write",
+      "research:write",
+    ] as const) {
+      await expect(
+        KeyService.authenticate(minted.key, scope, A),
+      ).rejects.toThrow(/can't/);
+    }
+  });
 });
