@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 const { database } = await vi.hoisted(async () => {
   const { createSqliteTestDb } = await import("@/server/testing/testDb");
   return { database: await createSqliteTestDb() };
@@ -223,5 +224,110 @@ describe("HubSpot migration data path", () => {
     );
     expect(response.status).toBe(401);
     expect((await HubspotRepository.counts(org, portalId)).objects).toEqual([]);
+  });
+
+  it("keeps an archived owner for history without making them an assignment candidate", async () => {
+    await seed();
+    await HubspotRepository.writeObjects(org, {
+      portalId,
+      objectType: "owners",
+      records: [{ id: "7", email: "owner@example.test", archived: true }],
+    });
+    expect(
+      (
+        await database.rows(
+          "select count(*) as n from member where id='hs:org_a:1234:members:7'",
+        )
+      )[0]?.n,
+    ).toBe(0);
+    expect(
+      (
+        await database.rows(
+          "select count(*) as n from user where id='hs:org_a:1234:owners:7'",
+        )
+      )[0]?.n,
+    ).toBe(1);
+  });
+
+  it("fills intake from imported deal properties and associated contacts, sending once", async () => {
+    await seed();
+    await HubspotRepository.writeObjects(org, {
+      portalId,
+      objectType: "deals",
+      records: [
+        {
+          id: "4",
+          properties: {
+            dealname: "Imported proof",
+            amount: "1000",
+            product___solution: "Asana",
+            dealtype: "newbusiness",
+            license_revenue: "900",
+            implementation_value: "100",
+          },
+        },
+      ],
+    });
+    await HubspotRepository.writeAssociations(org, {
+      portalId,
+      records: [
+        {
+          fromType: "deals",
+          fromId: "4",
+          toType: "companies",
+          toId: "1",
+          typeId: "5",
+          category: "HUBSPOT_DEFINED",
+          label: "Primary",
+        },
+        {
+          fromType: "deals",
+          fromId: "4",
+          toType: "contacts",
+          toId: "3",
+          typeId: "3",
+          category: "HUBSPOT_DEFINED",
+          label: null,
+        },
+      ],
+    });
+    vi.stubEnv("ASANA_WON_ENABLED", "1");
+    vi.stubEnv("ASANA_TOKEN", "synthetic-token");
+    vi.stubEnv("ASANA_PROJECT_GID", "private-synthetic-project");
+    let notes = "";
+    const fetcher = vi.fn<typeof fetch>(async (_url, init) => {
+      if (init?.method === "POST") {
+        if (typeof init.body !== "string")
+          throw new Error("Expected JSON task body");
+        const data = z
+          .object({ data: z.object({ notes: z.string() }) })
+          .parse(JSON.parse(init.body));
+        notes = data.data.notes;
+        return Response.json({ data: { gid: "synthetic-task" } });
+      }
+      return Response.json({ data: [] });
+    });
+    vi.stubGlobal("fetch", fetcher);
+    const id = "hs:org_a:1234:deals:4";
+    await DealService.setStage(org, { id, stage: "CLOSED_WON" }, "user_a");
+    expect(
+      await AsanaHandoffService.handOff(org, id, "https://crm.example.test"),
+    ).toBe("synthetic-task");
+    expect(await AsanaHandoffService.handOff(org, id, null)).toBeNull();
+    for (const value of [
+      "Company: Synthetic company",
+      "Synthetic",
+      "person@example.test",
+      "+10000000001",
+      "Total Contract Value: 1000",
+      "License Revenue: 900",
+      "Implementation Value: 100",
+      "Product: Asana",
+      "Order Type: New",
+    ])
+      expect(notes).toContain(value);
+    expect(
+      fetcher.mock.calls.filter(([, init]) => init?.method === "POST"),
+    ).toHaveLength(1);
   });
 });

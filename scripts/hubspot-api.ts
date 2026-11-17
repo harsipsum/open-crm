@@ -61,6 +61,7 @@ export const associationRowSchema = z.object({
   paging,
 });
 export const crmAnswer = z.object({
+  asanaEnabled: z.boolean().optional(),
   received: z.number().optional(),
   created: z.number().optional(),
   objects: z

@@ -80,7 +80,10 @@ export async function serveHubspotImport(request: Request): Promise<Response> {
     const portal = url.searchParams.get("portalId") ?? "";
     if (!/^\d{1,20}$/.test(portal))
       return json(422, { error: "Portal ID required." });
-    return json(200, await HubspotRepository.counts(org, portal));
+    return json(200, {
+      ...(await HubspotRepository.counts(org, portal)),
+      asanaEnabled: (await getOptionalEnvValue("ASANA_WON_ENABLED")) === "1",
+    });
   }
   if (request.method !== "POST") return json(405, { error: "POST required." });
   try {
