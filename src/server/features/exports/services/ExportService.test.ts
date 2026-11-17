@@ -13,7 +13,7 @@ vi.mock("@/db/runBatch", () => database.runBatchModule);
 import type { ExportDataset } from "@/types/schemas/exports";
 import { ExportService } from "./ExportService";
 
-const OWNER = { organizationId: "org_a", role: "owner" };
+const OWNER = { organizationId: "org_a", crmRole: "admin" as const };
 
 describe("ExportService", () => {
   beforeEach(async () => {
@@ -121,9 +121,9 @@ describe("ExportService", () => {
     ]);
   });
 
-  it("is the owner's alone", async () => {
+  it("is for CRM admins alone", async () => {
     await expect(
-      ExportService.page({ ...OWNER, role: "admin" }, "contacts", null),
+      ExportService.page({ ...OWNER, crmRole: "manager" }, "contacts", null),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

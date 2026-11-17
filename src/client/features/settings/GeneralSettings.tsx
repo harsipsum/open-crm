@@ -10,12 +10,13 @@ import { ThemePreferenceRadio } from "@/client/components/ThemePreferenceMenuIte
 import { ArchivedRecordsSection } from "@/client/features/settings/ArchivedRecordsSection";
 import { SettingsDisclosure } from "@/client/components/SettingsDisclosure";
 import { MembersSettings } from "./MembersSettings";
+import { AuditLogSettings } from "./AuditLogSettings";
+import { SalesTeamSettings } from "./SalesTeamSettings";
 import { CurrencySettings } from "./CurrencySettings";
 import { DealsSetting } from "./DealsSetting";
 import { useCanManageWorkspace } from "@/client/features/settings/settingsQueries";
 import { WorkspaceSettingsCard } from "@/client/features/workspace/WorkspaceForm";
 import { workspaceQueryOptions } from "@/client/features/workspace/workspaceQueries";
-import { hasOrgPermission } from "@/shared/org-permissions";
 
 /** Settings → General, as the original CRM groups it. */
 export function GeneralSettings() {
@@ -41,13 +42,16 @@ export function GeneralSettings() {
 
       <ArchivedRecordsSection />
       <MembersSettings />
+      {workspace?.crmRole === "admin" ? (
+        <>
+          <SalesTeamSettings />
+          <AuditLogSettings />
+        </>
+      ) : null}
       <SettingsDisclosure id="currencies" title="Currencies">
         <CurrencySettings />
       </SettingsDisclosure>
-      {workspace &&
-      hasOrgPermission(workspace.role, { workspace: ["export"] }) ? (
-        <ExportAllSection />
-      ) : null}
+      {workspace && workspace.crmRole === "admin" ? <ExportAllSection /> : null}
     </SettingsPage>
   );
 }

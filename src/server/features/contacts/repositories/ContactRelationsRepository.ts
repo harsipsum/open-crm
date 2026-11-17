@@ -14,6 +14,10 @@ import {
   sql,
 } from "drizzle-orm";
 import { db } from "@/db";
+import {
+  contactAccessCondition,
+  dealAccessCondition,
+} from "@/server/features/access/access";
 import { runBatch } from "@/db/runBatch";
 import {
   calendarAttendee,
@@ -137,6 +141,7 @@ async function listDeals(organizationId: string, contactId: string) {
       and(
         eq(deal.id, dealContact.dealId),
         eq(deal.organizationId, dealContact.organizationId),
+        dealAccessCondition(),
       ),
     )
     .leftJoin(user, eq(user.id, deal.ownerId))
@@ -176,6 +181,7 @@ async function listColleagues(
     .where(
       and(
         eq(contact.organizationId, organizationId),
+        contactAccessCondition(),
         eq(contact.companyId, companyId),
         ne(contact.id, contactId),
         isNull(contact.archivedAt),

@@ -1,5 +1,6 @@
 import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { contactAccessCondition } from "@/server/features/access/access";
 import {
   company,
   contact,
@@ -118,6 +119,7 @@ async function cardsFor(
         .where(
           and(
             eq(contact.organizationId, organizationId),
+            contactAccessCondition(),
             inArray(contact.id, part),
           ),
         );

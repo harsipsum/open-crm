@@ -15,6 +15,7 @@ import {
   CompanyPicker,
   type CompanyOption,
 } from "@/client/features/records/CompanyPicker";
+import { useAssignableOptions } from "@/client/features/records/owners";
 import { useInvalidateRecords } from "@/client/features/records/recordQueries";
 import { currencySettingsQueryOptions } from "@/client/features/settings/settingsQueries";
 import {
@@ -31,6 +32,7 @@ import {
 } from "@/shared/currency";
 import { DEAL_STAGE_LABELS, OPEN_DEAL_STAGES } from "@/shared/deal-stages";
 import { DEAL_NAME_MAX, type CreateDealInput } from "@/types/schemas/deals";
+import { UNASSIGNED } from "@/types/schemas/records";
 
 const FORM_ID = "create-deal";
 
@@ -78,6 +80,9 @@ export function CreateDealDialog({
   const account = useQuery(everyAppAccountQueryOptions());
   const currencies = useQuery(currencySettingsQueryOptions());
   const members = useQuery(membersQueryOptions());
+  const assignable = useAssignableOptions(null).filter(
+    (option) => option.value !== UNASSIGNED,
+  );
   if (account.isPending || currencies.isPending || members.isPending) {
     return (
       <FormDialog title="New deal" onClose={onClose} actions={null}>
@@ -87,10 +92,7 @@ export function CreateDealDialog({
   }
   return (
     <CreateDealForm
-      owners={(members.data ?? []).map((member) => ({
-        value: member.userId,
-        label: member.name,
-      }))}
+      owners={assignable}
       defaults={{
         owner: account.data?.userId ?? "",
         currency:

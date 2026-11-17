@@ -12,6 +12,9 @@ export const getWorkspace = createServerFn({ method: "GET" })
   .handler(async ({ context }) => ({
     ...(await WorkspaceService.getWorkspace(context.organizationId)),
     role: context.role,
+    crmRole: context.access.role,
+    userId: context.userId,
+    workingOwnerIds: context.access.workingOwnerIds,
   }));
 
 export const updateWorkspace = createServerFn({ method: "POST" })

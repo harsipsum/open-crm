@@ -18,6 +18,8 @@ export const dealListSearchSchema = recordListSearchSchema.extend({
   status: z.enum(["open", "closed"]).optional().catch(undefined),
   stage: z.array(z.enum(DEAL_STAGES)).optional().catch(undefined),
   closing: z.array(z.enum(CLOSING_WINDOWS)).optional().catch(undefined),
+  /** The pipeline as a board of stages instead of the table. */
+  view: z.enum(["board"]).optional().catch(undefined),
 });
 
 export type DealListSearch = z.infer<typeof dealListSearchSchema>;

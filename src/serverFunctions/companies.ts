@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireOrgPermission } from "@/server/auth/org-gate";
+import { auditExport } from "@/server/features/access/AuditRepository";
 import { CompanyService } from "@/server/features/companies/services/CompanyService";
 import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
 import {
@@ -21,9 +22,10 @@ import {
 export const listCompanies = createServerFn({ method: "GET" })
   .middleware(requireAuthenticatedContext)
   .validator(companyListSchema)
-  .handler(({ data, context }) =>
-    CompanyService.listCompanies(context.organizationId, data),
-  );
+  .handler(async ({ data, context }) => {
+    if (data.forExport) await auditExport(context, "companies", data.page);
+    return CompanyService.listCompanies(context.organizationId, data);
+  });
 
 export const getCompany = createServerFn({ method: "GET" })
   .middleware(requireAuthenticatedContext)

@@ -6,6 +6,7 @@ import {
   inArray,
   isNotNull,
   isNull,
+  notInArray,
   or,
   sql,
   type AnyColumn,
@@ -13,8 +14,10 @@ import {
   type SQLWrapper,
 } from "drizzle-orm";
 import { user } from "@/db/schema";
+import { currentAccess } from "@/server/features/access/access";
 import {
   ACTIVITY_WINDOWS,
+  SHARED_POOL,
   UNASSIGNED,
   type ActivityWindow,
   type ListInput,
@@ -122,10 +125,16 @@ export function ownerCondition(
   owners: string[],
 ): SQL | undefined {
   if (owners.length === 0) return undefined;
-  const ids = owners.filter((owner) => owner !== UNASSIGNED);
+  const ids = owners.filter(
+    (owner) => owner !== UNASSIGNED && owner !== SHARED_POOL,
+  );
+  const working = currentAccess()?.workingOwnerIds;
   return or(
     ids.length > 0 ? inArray(column, ids) : undefined,
-    ids.length < owners.length ? isNull(column) : undefined,
+    owners.includes(UNASSIGNED) ? isNull(column) : undefined,
+    owners.includes(SHARED_POOL) && working && working.length > 0
+      ? notInArray(column, working)
+      : undefined,
   );
 }
 

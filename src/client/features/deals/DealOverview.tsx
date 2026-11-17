@@ -29,7 +29,11 @@ import {
   LocalDay,
 } from "@/client/features/records/LocalDateTime";
 import { SheetSection } from "@/client/features/records/RecordSheet";
-import { useOwnerOptions } from "@/client/features/records/owners";
+import {
+  TakeOverButton,
+  useAssignableOptions,
+  useTakeOver,
+} from "@/client/features/records/owners";
 import { CURRENCIES, normalizeCurrency } from "@/shared/currency";
 import { UNASSIGNED } from "@/types/schemas/records";
 
@@ -271,20 +275,21 @@ function OwnerField({
   saving: boolean;
   onSave: (ownerId: string) => void;
 }) {
-  const members = useOwnerOptions().filter(
+  // Someone who left still owns their deals until they're reassigned.
+  const items = useAssignableOptions(owner).filter(
     (option) => option.value !== UNASSIGNED,
   );
-  // Someone who left still owns their deals until they're reassigned.
-  const items = members.some((option) => option.value === owner.id)
-    ? members
-    : [...members, { value: owner.id, label: owner.name }];
+  const me = useTakeOver(owner.id);
   return (
-    <InlineSelectField
-      label="Owner"
-      value={owner.id}
-      items={items}
-      saving={saving}
-      onSave={onSave}
-    />
+    <>
+      <InlineSelectField
+        label="Owner"
+        value={owner.id}
+        items={items}
+        saving={saving}
+        onSave={onSave}
+      />
+      <TakeOverButton me={me} saving={saving} onTake={onSave} />
+    </>
   );
 }

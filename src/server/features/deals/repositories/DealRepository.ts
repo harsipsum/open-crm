@@ -21,6 +21,7 @@ import {
   pipelineStage,
   user,
 } from "@/db/schema";
+import { dealAccessCondition } from "@/server/features/access/access";
 import { idChunks } from "@/server/features/records/recordRules";
 import { fieldValueWrites } from "@/server/features/fields/repositories/FieldValueRepository";
 import type { FieldWrite } from "@/server/features/fields/repositories/FieldValueRepository";
@@ -76,8 +77,14 @@ export const ofItsCompany = and(
   eq(company.organizationId, deal.organizationId),
 );
 
+// Narrowed to the deals the member this request is for may see
+// (src/server/features/access/access.ts): to them, any other deal is not there.
 function inOrganization(organizationId: string, id: string) {
-  return and(eq(deal.organizationId, organizationId), eq(deal.id, id));
+  return and(
+    eq(deal.organizationId, organizationId),
+    eq(deal.id, id),
+    dealAccessCondition(),
+  );
 }
 
 /**
@@ -305,6 +312,7 @@ async function archive(organizationId: string, ids: string[]) {
           eq(deal.organizationId, organizationId),
           inArray(deal.id, part),
           isNull(deal.archivedAt),
+          dealAccessCondition(),
         ),
       )
       .returning({ id: deal.id });
@@ -335,7 +343,11 @@ async function setOwner(
       .update(deal)
       .set({ ownerId, updatedAt: new Date().toISOString() })
       .where(
-        and(eq(deal.organizationId, organizationId), inArray(deal.id, part)),
+        and(
+          eq(deal.organizationId, organizationId),
+          inArray(deal.id, part),
+          dealAccessCondition(),
+        ),
       )
       .returning({ id: deal.id });
     changed += rows.length;

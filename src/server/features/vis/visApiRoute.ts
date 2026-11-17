@@ -1,3 +1,4 @@
+import { recordAudit } from "@/server/features/access/AuditRepository";
 import type { z } from "zod";
 import { serveHubspotImport } from "@/server/features/hubspot/hubspotRoute";
 import { KeyService } from "@/server/features/vis/services/KeyService";
@@ -103,6 +104,25 @@ async function caller(request: Request, scope: VisScope) {
   );
 }
 
+/** Logs a sibling app's write, under its key's app name. */
+async function written<T>(
+  who: { organizationId: string; app: string },
+  action: string,
+  recordId: string | null,
+  result: T,
+): Promise<T> {
+  await recordAudit({
+    organizationId: who.organizationId,
+    actorId: who.app,
+    actorKind: "app",
+    action: `vis:${action}`,
+    recordId,
+    detail: {},
+    outcome: "ok",
+  });
+  return result;
+}
+
 async function route(request: Request): Promise<Response> {
   const { pathname } = new URL(request.url);
   if (pathname === `${VIS_API_PREFIX}leads` && request.method === "POST") {
@@ -114,6 +134,7 @@ async function route(request: Request): Promise<Response> {
       input,
       who.app,
     );
+    if (lead.dealId) await written(who, "lead", lead.dealId, null);
     // 201 when a deal was made or joined; 200 for a possible match that
     // wrote nothing.
     return json(lead.dealId ? 201 : 200, lead);
@@ -148,11 +169,16 @@ async function route(request: Request): Promise<Response> {
     if (input instanceof Response) return input;
     return json(
       201,
-      await IntakeService.addNote(
-        who.organizationId,
+      await written(
+        who,
+        "note",
         dealId,
-        input.body,
-        who.app,
+        await IntakeService.addNote(
+          who.organizationId,
+          dealId,
+          input.body,
+          who.app,
+        ),
       ),
     );
   }
@@ -162,14 +188,27 @@ async function route(request: Request): Promise<Response> {
     if (input instanceof Response) return input;
     return json(
       200,
-      await IntakeService.moveToStage(who.organizationId, input, who.app),
+      await written(
+        who,
+        "stage",
+        dealId,
+        await IntakeService.moveToStage(who.organizationId, input, who.app),
+      ),
     );
   }
   if (action === "order") {
     const who = await caller(request, "stage:write");
     const input = await bodyOf(request, orderSchema, { dealId });
     if (input instanceof Response) return input;
-    return json(200, await VisDealService.setOrder(who.organizationId, input));
+    return json(
+      200,
+      await written(
+        who,
+        "order",
+        dealId,
+        await VisDealService.setOrder(who.organizationId, input),
+      ),
+    );
   }
   if (action === "consent") {
     const who = await caller(request, "leads:write");
@@ -177,7 +216,12 @@ async function route(request: Request): Promise<Response> {
     if (input instanceof Response) return input;
     return json(
       200,
-      await VisDealService.setConsent(who.organizationId, input),
+      await written(
+        who,
+        "consent",
+        dealId,
+        await VisDealService.setConsent(who.organizationId, input),
+      ),
     );
   }
   if (action === "research") {
@@ -186,7 +230,12 @@ async function route(request: Request): Promise<Response> {
     if (input instanceof Response) return input;
     return json(
       200,
-      await ResearchService.fill(who.organizationId, input, who.app),
+      await written(
+        who,
+        "research",
+        dealId,
+        await ResearchService.fill(who.organizationId, input, who.app),
+      ),
     );
   }
   return json(404, { error: "Not found." });

@@ -9,3 +9,4 @@ export * from "./slack.schema";
 export * from "./sharing.schema";
 export * from "./vis.schema";
 export * from "./hubspot.schema";
+export * from "./access.schema";

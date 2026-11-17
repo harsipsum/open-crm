@@ -1,5 +1,7 @@
 import { chunk } from "remeda";
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
+import { currentAccess } from "@/server/features/access/access";
+import { canAssignOthers } from "@/shared/crm-roles";
 import { FieldValuesService } from "@/server/features/fields/services/FieldValuesService";
 import { UserFacingError, asAppError } from "@/server/lib/errors";
 import type { FieldEntity } from "@/shared/crm-enums";
@@ -23,12 +25,24 @@ export function blankToNull(value: string): string | null {
   return trimmed === "" ? null : trimmed;
 }
 
-/** Refuses an owner who isn't a member of the organization. */
+/**
+ * Refuses an owner who isn't a member of the organization, and a seller
+ * giving a record to someone else (a seller takes records for themselves or
+ * drops them in the shared pool). The UI, the tools and bulk actions all
+ * come through here.
+ */
 export async function assertOwner(
   organizationId: string,
   ownerId: string | null | undefined,
 ): Promise<void> {
   if (!ownerId) return;
+  const access = currentAccess();
+  if (access && ownerId !== access.userId && !canAssignOthers(access.role)) {
+    throw new UserFacingError(
+      "FORBIDDEN",
+      "Sellers own what they take. A manager or admin gives records to someone else.",
+    );
+  }
   if (!(await AuthRepository.isMember(organizationId, ownerId))) {
     throw new UserFacingError(
       "VALIDATION_ERROR",

@@ -1,5 +1,6 @@
 import { and, asc, eq, isNull, notExists, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { contactAccessCondition } from "@/server/features/access/access";
 import { contact, dealContact } from "@/db/schema";
 
 // The people on a deal (deal_contact), each with an optional role, and the
@@ -65,6 +66,7 @@ async function options(
     .where(
       and(
         eq(contact.organizationId, organizationId),
+        contactAccessCondition(),
         eq(contact.companyId, companyId),
         isNull(contact.archivedAt),
         notExists(
@@ -98,6 +100,7 @@ async function findContact(organizationId: string, contactId: string) {
     .where(
       and(
         eq(contact.organizationId, organizationId),
+        contactAccessCondition(),
         eq(contact.id, contactId),
         isNull(contact.archivedAt),
       ),

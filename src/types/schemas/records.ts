@@ -18,6 +18,12 @@ export type SortDirection = (typeof SORT_DIRECTIONS)[number];
 /** The owner filter's value for records nobody owns. */
 export const UNASSIGNED = "unassigned";
 
+/**
+ * The owner filter's value for the shared pool: records owned by someone who
+ * is not a working member (a leaver, a HubSpot-era owner).
+ */
+export const SHARED_POOL = "shared";
+
 /** The most owners a list filters by at once. */
 export const OWNER_FILTER_MAX = 20;
 
@@ -74,6 +80,8 @@ export const listInputSchema = z.object({
   dir: z.enum(SORT_DIRECTIONS).default("asc"),
   page: z.number().int().min(1).default(1),
   pageSize: z.number().int().min(1).max(100).default(LIST_PAGE_SIZE),
+  /** Paging the list out to a CSV: for managers and admins, and audited. */
+  forExport: z.boolean().optional(),
 });
 
 export type ListInput = z.infer<typeof listInputSchema>;

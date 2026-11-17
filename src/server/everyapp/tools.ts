@@ -1,4 +1,5 @@
 import { defineTools, everyApp } from "@every-app/sdk/server";
+import { namedTools } from "@/server/everyapp/crm-tool";
 import { activityTools } from "@/server/everyapp/tools/activities";
 import { bulkTools } from "@/server/everyapp/tools/bulk";
 import { companyTools } from "@/server/everyapp/tools/companies";
@@ -54,6 +55,6 @@ const tools = {
 export const everyAppTools = everyApp<Env>(
   () => new Response("Not found", { status: 404 }),
   {
-    tools: defineTools(tools, { instructions: INSTRUCTIONS }),
+    tools: defineTools(namedTools(tools), { instructions: INSTRUCTIONS }),
   },
 );

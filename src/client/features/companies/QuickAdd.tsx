@@ -9,6 +9,8 @@ import { Button } from "@/client/components/ui/button";
 import { contactErrorMessage } from "@/client/features/contacts/useContactMutations";
 import { parseAmount } from "@/client/features/deals/dealFormat";
 import { useInvalidateRecords } from "@/client/features/records/recordQueries";
+import { workspaceQueryOptions } from "@/client/features/workspace/workspaceQueries";
+import { canAssignOthers } from "@/shared/crm-roles";
 import {
   getErrorCode,
   getStandardErrorMessage,
@@ -78,6 +80,12 @@ export function QuickAddContact({
   onDone: () => void;
 }) {
   const invalidate = useInvalidateRecords();
+  const { data: workspace } = useQuery(workspaceQueryOptions());
+  // A seller keeps the people they add; a manager or admin follows the company.
+  const ownerId =
+    workspace && !canAssignOthers(workspace.crmRole)
+      ? workspace.userId
+      : company.ownerId;
   const create = useMutation({
     mutationFn: (values: z.infer<typeof contactSchema>) =>
       createContact({
@@ -87,7 +95,7 @@ export function QuickAddContact({
           email: values.email || undefined,
           title: values.title || undefined,
           companyId: company.id,
-          ownerId: company.ownerId,
+          ownerId,
         },
       }),
     // A taken email shows on the field itself.

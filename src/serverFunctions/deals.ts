@@ -1,5 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireOrgPermission } from "@/server/auth/org-gate";
+import {
+  requireAssignable,
+  requireOrgPermission,
+} from "@/server/auth/org-gate";
+import { auditExport } from "@/server/features/access/AuditRepository";
 import { DealService } from "@/server/features/deals/services/DealService";
 import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
 import {
@@ -16,15 +20,18 @@ import {
 } from "@/types/schemas/deals";
 import { bulkIdsSchema, recordIdSchema } from "@/types/schemas/records";
 
-// Members work the pipeline: they add, edit, move, archive and restore deals.
-// Deleting an archived deal forever is for owners and admins.
+// Members work the pipeline: they add, edit, move, archive and restore the
+// deals their Access lets them see (src/server/features/access/access.ts).
+// Giving a deal to someone else is for managers and admins; deleting an
+// archived deal forever is for owners and admins.
 
 export const listDeals = createServerFn({ method: "GET" })
   .middleware(requireAuthenticatedContext)
   .validator(dealListSchema)
-  .handler(({ data, context }) =>
-    DealService.listDeals(context.organizationId, data),
-  );
+  .handler(async ({ data, context }) => {
+    if (data.forExport) await auditExport(context, "deals", data.page);
+    return DealService.listDeals(context.organizationId, data);
+  });
 
 export const getDeal = createServerFn({ method: "GET" })
   .middleware(requireAuthenticatedContext)
@@ -36,16 +43,18 @@ export const getDeal = createServerFn({ method: "GET" })
 export const createDeal = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)
   .validator(createDealSchema)
-  .handler(({ data, context }) =>
-    DealService.createDeal(context.organizationId, data),
-  );
+  .handler(({ data, context }) => {
+    requireAssignable(context, data.ownerId);
+    return DealService.createDeal(context.organizationId, data);
+  });
 
 export const updateDeal = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)
   .validator(updateDealSchema)
-  .handler(({ data, context }) =>
-    DealService.updateDeal(context.organizationId, data),
-  );
+  .handler(({ data, context }) => {
+    requireAssignable(context, data.ownerId);
+    return DealService.updateDeal(context.organizationId, data);
+  });
 
 export const setDealStage = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)
@@ -111,9 +120,14 @@ export const setDealContactRole = createServerFn({ method: "POST" })
 export const bulkAssignDealOwner = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)
   .validator(bulkDealOwnerSchema)
-  .handler(({ data, context }) =>
-    DealService.bulkAssignOwner(context.organizationId, data.ids, data.ownerId),
-  );
+  .handler(({ data, context }) => {
+    requireAssignable(context, data.ownerId);
+    return DealService.bulkAssignOwner(
+      context.organizationId,
+      data.ids,
+      data.ownerId,
+    );
+  });
 
 export const bulkSetDealStage = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)

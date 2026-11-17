@@ -2,10 +2,12 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getRouteApi, Link } from "@tanstack/react-router";
 import type { SortingState } from "@tanstack/react-table";
-import { CircleDollarSign, Plus, Upload } from "lucide-react";
+import { CircleDollarSign, Columns3, Plus, Table2, Upload } from "lucide-react";
 import { findLast } from "remeda";
+import { cn } from "cn";
 import { EmptyState } from "@/client/components/EmptyState";
 import { PageHeader } from "@/client/components/PageHeader";
+import { SegmentedToggle } from "@/client/components/SegmentedToggle";
 import { QueryError } from "@/client/components/QueryState";
 import {
   DataTable,
@@ -18,6 +20,7 @@ import {
 } from "@/client/components/table/TablePagination";
 import { Button } from "@/client/components/ui/button";
 import { CreateDealDialog } from "@/client/features/deals/CreateDealDialog";
+import { DealBoard } from "@/client/features/deals/DealBoard";
 import { DealBulkActions } from "@/client/features/deals/DealBulkActions";
 import { dealFilters } from "@/client/features/deals/DealFilters";
 import {
@@ -110,6 +113,7 @@ function DealsList() {
   });
   const [creating, setCreating] = useNewForm();
   const [importing, setImporting] = useState(false);
+  const board = search.view === "board";
 
   const anchorRef = useSelectionAnchor();
   const fieldColumns = useFieldColumns<DealRow>("DEAL");
@@ -166,7 +170,13 @@ function DealsList() {
   return (
     <div className="flex h-full flex-col overflow-auto px-4 py-4 pb-24 md:px-6 md:py-6 md:pb-8">
       {/* The rows scroll inside the table's card, under its header. */}
-      <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col gap-4">
+      {/* A board takes the full width, its columns scrolling sideways past it. */}
+      <div
+        className={cn(
+          "mx-auto flex min-h-0 w-full flex-1 flex-col gap-4",
+          !board && "max-w-7xl",
+        )}
+      >
         <PageHeader
           title={input.archived ? "Archived deals" : "Deals"}
           description={
@@ -176,11 +186,37 @@ function DealsList() {
           }
           actions={
             <>
+              {input.archived ? null : (
+                <SegmentedToggle<"table" | "board">
+                  showLabels
+                  value={board ? "board" : "table"}
+                  onChange={(next) =>
+                    setSearch({
+                      view: next === "board" ? "board" : undefined,
+                      page: undefined,
+                    })
+                  }
+                  items={[
+                    {
+                      value: "table",
+                      label: "Table",
+                      icon: <Table2 className="size-3.5" />,
+                    },
+                    {
+                      value: "board",
+                      label: "Board",
+                      icon: <Columns3 className="size-3.5" />,
+                    },
+                  ]}
+                />
+              )}
               <CsvMenu
                 entity="DEAL"
                 columns={DEAL_EXPORT}
                 fetchPage={(page, pageSize) =>
-                  listDeals({ data: { ...input, page, pageSize } })
+                  listDeals({
+                    data: { ...input, page, pageSize, forExport: true },
+                  })
                 }
                 onImport={() => setImporting(true)}
               />
@@ -188,96 +224,100 @@ function DealsList() {
             </>
           }
         />
-        <DataTable
-          table={table}
-          isLoading={query.isPending}
-          isFiltered={isListFiltered(search, DEAL_FILTER_KEYS)}
-          onClearFilters={() => setSearch(clearedFilters(DEAL_FILTER_KEYS))}
-          filteredTitle="No matches"
-          error={
-            query.isError ? (
-              <QueryError
-                error={query.error}
-                fallback="Couldn't load deals."
-                onRetry={() => void query.refetch()}
-                isRetrying={query.isFetching}
-              />
-            ) : undefined
-          }
-          empty={
-            input.archived
-              ? {
-                  icon: CircleDollarSign,
-                  media: "icon",
-                  title: "No archived deals",
+        {board && !input.archived ? (
+          <DealBoard input={input} onOpen={openDeal} />
+        ) : (
+          <DataTable
+            table={table}
+            isLoading={query.isPending}
+            isFiltered={isListFiltered(search, DEAL_FILTER_KEYS)}
+            onClearFilters={() => setSearch(clearedFilters(DEAL_FILTER_KEYS))}
+            filteredTitle="No matches"
+            error={
+              query.isError ? (
+                <QueryError
+                  error={query.error}
+                  fallback="Couldn't load deals."
+                  onRetry={() => void query.refetch()}
+                  isRetrying={query.isFetching}
+                />
+              ) : undefined
+            }
+            empty={
+              input.archived
+                ? {
+                    icon: CircleDollarSign,
+                    media: "icon",
+                    title: "No archived deals",
+                  }
+                : {
+                    icon: CircleDollarSign,
+                    media: "icon",
+                    title: "No deals",
+                    description: "Each deal belongs to a company.",
+                    action: (
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {newDeal}
+                        {importCsv}
+                      </div>
+                    ),
+                  }
+            }
+            toolbar={
+              <RecordListToolbar
+                entity="DEAL"
+                table={table}
+                search={search}
+                onSearchChange={setSearch}
+                onApplyView={(view) =>
+                  void navigate({
+                    search: (prev) =>
+                      searchFromSavedView(dealListSearchSchema, view, prev),
+                  })
                 }
-              : {
-                  icon: CircleDollarSign,
-                  media: "icon",
-                  title: "No deals",
-                  description: "Each deal belongs to a company.",
-                  action: (
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {newDeal}
-                      {importCsv}
-                    </div>
+                placeholder="Search deals…"
+                facetCounts={query.data?.facetCounts}
+                filters={filters}
+                filterKeys={DEAL_FILTER_KEYS}
+                selection={{
+                  count: selection.selectedIds.length,
+                  onClear: selection.clear,
+                  actions: (
+                    <DealBulkActions
+                      ids={selection.selectedIds}
+                      archived={input.archived}
+                      canPurge={canPurge}
+                      onDone={selection.clear}
+                    />
                   ),
+                }}
+              />
+            }
+            footer={
+              <TablePagination
+                page={input.page}
+                pageSize={input.pageSize}
+                totalCount={query.data?.total ?? null}
+                isLoading={query.isPlaceholderData}
+                // Prev and next are links, each page a step the browser's
+                // Back returns to; a page put back in range replaces its own.
+                renderPageButton={PageLink}
+                onPageChange={(page) =>
+                  setSearch({ page: page > 1 ? page : undefined })
                 }
-          }
-          toolbar={
-            <RecordListToolbar
-              entity="DEAL"
-              table={table}
-              search={search}
-              onSearchChange={setSearch}
-              onApplyView={(view) =>
-                void navigate({
-                  search: (prev) =>
-                    searchFromSavedView(dealListSearchSchema, view, prev),
-                })
-              }
-              placeholder="Search deals…"
-              facetCounts={query.data?.facetCounts}
-              filters={filters}
-              filterKeys={DEAL_FILTER_KEYS}
-              selection={{
-                count: selection.selectedIds.length,
-                onClear: selection.clear,
-                actions: (
-                  <DealBulkActions
-                    ids={selection.selectedIds}
-                    archived={input.archived}
-                    canPurge={canPurge}
-                    onDone={selection.clear}
-                  />
-                ),
-              }}
-            />
-          }
-          footer={
-            <TablePagination
-              page={input.page}
-              pageSize={input.pageSize}
-              totalCount={query.data?.total ?? null}
-              isLoading={query.isPlaceholderData}
-              // Prev and next are links, each page a step the browser's
-              // Back returns to; a page put back in range replaces its own.
-              renderPageButton={PageLink}
-              onPageChange={(page) =>
-                setSearch({ page: page > 1 ? page : undefined })
-              }
-              meta={
-                input.archived ? null : <PipelineSummary list={query.data} />
-              }
-            />
-          }
-          onRowClick={(row) => openDeal(row.original.id)}
-          onRowHover={(row) =>
-            prefetchRecord({ kind: "deal", id: row.original.id })
-          }
-          scrollClassName="min-h-0 flex-1"
-          activeRowId={findLast(stack, (ref) => ref.kind === "deal")?.id}
-        />
+                meta={
+                  input.archived ? null : <PipelineSummary list={query.data} />
+                }
+              />
+            }
+            onRowClick={(row) => openDeal(row.original.id)}
+            onRowHover={(row) =>
+              prefetchRecord({ kind: "deal", id: row.original.id })
+            }
+            scrollClassName="min-h-0 flex-1"
+            activeRowId={findLast(stack, (ref) => ref.kind === "deal")?.id}
+          />
+        )}
       </div>
 
       {importing ? (

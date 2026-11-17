@@ -1,5 +1,9 @@
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
+import {
+  contactAccessCondition,
+  dealAccessCondition,
+} from "@/server/features/access/access";
 import { company, contact, deal } from "@/db/schema";
 import { DEAL_STAGES } from "@/shared/crm-enums";
 import { searchCondition } from "@/server/features/records/listQuery";
@@ -57,6 +61,7 @@ async function contacts(organizationId: string, q: string, limit: number) {
       and(
         eq(contact.organizationId, organizationId),
         isNull(contact.archivedAt),
+        contactAccessCondition(),
         searchCondition(q, [
           contact.firstName,
           contact.lastName,
@@ -103,6 +108,7 @@ async function deals(organizationId: string, q: string, limit: number) {
       and(
         eq(deal.organizationId, organizationId),
         isNull(deal.archivedAt),
+        dealAccessCondition(),
         searchCondition(q, [deal.name]),
       ),
     )
