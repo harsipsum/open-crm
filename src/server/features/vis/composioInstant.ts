@@ -181,7 +181,7 @@ export function companyLine(
     [company.city, company.country].filter(Boolean).join(", ") || null,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(", ");
 }
 
 export function personLine(person: NonNullable<ReturnType<typeof readPerson>>) {
@@ -192,5 +192,5 @@ export function personLine(person: NonNullable<ReturnType<typeof readPerson>>) {
     person.mobile ? "mobile found" : null,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(", ");
 }

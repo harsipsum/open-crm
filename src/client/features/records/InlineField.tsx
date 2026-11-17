@@ -139,7 +139,7 @@ export function InlineField({
             {shown ? (
               <span className="truncate">{format ? format(shown) : shown}</span>
             ) : (
-              <span className="truncate text-muted-foreground">—</span>
+              <span className="truncate text-muted-foreground">None</span>
             )}
           </Button>
         </div>

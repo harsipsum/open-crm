@@ -58,7 +58,7 @@ export function ExportAllSection() {
       const files: Record<string, Uint8Array> = {};
       for (const dataset of EXPORT_DATASETS) {
         const csv = await datasetCsv(dataset, (count) =>
-          setProgress(`${LABELS[dataset]} · ${count.toLocaleString()}`),
+          setProgress(`${LABELS[dataset]}, ${count.toLocaleString()}`),
         );
         files[`${dataset}.csv`] = strToU8(csv);
       }

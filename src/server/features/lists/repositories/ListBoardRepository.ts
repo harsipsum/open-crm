@@ -125,7 +125,7 @@ async function cardsFor(
         cards.set(row.id, {
           name: [row.firstName, row.lastName].filter(Boolean).join(" "),
           detail:
-            [row.title, row.companyName].filter(Boolean).join(" · ") || null,
+            [row.title, row.companyName].filter(Boolean).join(", ") || null,
           imageUrl: row.imageUrl,
         });
     } else {

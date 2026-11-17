@@ -278,7 +278,7 @@ async function suppressDomain(
   if (ourDomains.has(domain)) {
     throw new AppError(
       "NOT_FOUND",
-      "That is our own domain — it is already excluded.",
+      "That is our own domain, so it is already excluded.",
     );
   }
   await CaptureWriteRepository.suppressDomain(

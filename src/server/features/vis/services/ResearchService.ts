@@ -201,14 +201,14 @@ async function writeBrief(organizationId: string, dealId: string) {
           contact.phone ?? person?.mobile ?? "no phone yet",
         ]
           .filter(Boolean)
-          .join(" · ")
+          .join(", ")
       : "No contact on the deal",
     fit: `${lead?.fitScore ?? 0}/100: ${(lead?.fitReasons ?? []).join("; ")}`,
     product: `${product}, ${lead?.orderType ?? "NEW"}${lead?.users ? `, ${lead.users} users` : ""}`,
     source: lead
       ? [lead.source, lead.campaign, lead.creativeId]
           .filter(Boolean)
-          .join(" · ")
+          .join(", ")
       : "Unknown",
   };
   await finish(organizationId, dealId, "BRIEF", {

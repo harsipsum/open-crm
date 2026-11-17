@@ -6,6 +6,7 @@ export function FollowUpIllustration() {
   return (
     <div
       aria-hidden
+      data-visual
       className="pointer-events-none relative h-60 w-80 max-w-full select-none sm:h-64 sm:w-96"
     >
       <div className="absolute inset-10 rounded-full bg-primary/10 blur-3xl" />

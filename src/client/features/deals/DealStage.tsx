@@ -31,27 +31,7 @@ import {
 // or unqualified deal asks for first (in the URL while it's asked:
 // `closeDeal` and `closeStage`), and the sheet's pipeline stepper.
 
-type Tone = "neutral" | "info" | "warning" | "success" | "error";
-
-const TONES: Record<DealStage, Tone> = {
-  DEMO_BOOKED: "neutral",
-  QUALIFIED_TO_BUY: "info",
-  DECISION_MAKER_BOUGHT_IN: "info",
-  CONTRACT_SENT: "warning",
-  CLOSED_WON: "success",
-  CLOSED_LOST: "error",
-  UNQUALIFIED_TO_BUY: "neutral",
-};
-
-const DOT: Record<Tone, string> = {
-  neutral: "bg-muted-foreground/60",
-  info: "bg-info",
-  warning: "bg-warning",
-  success: "bg-success",
-  error: "bg-destructive",
-};
-
-/** A stage as a coloured dot and its name. */
+/** A stage, by name. */
 export function DealStageIndicator({
   stage,
   className,
@@ -60,12 +40,8 @@ export function DealStageIndicator({
   className?: string;
 }) {
   return (
-    <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)}>
-      <span
-        aria-hidden
-        className={cn("size-1.5 shrink-0 rounded-full", DOT[TONES[stage]])}
-      />
-      <span className="truncate">{DEAL_STAGE_LABELS[stage]}</span>
+    <span className={cn("min-w-0 truncate", className)}>
+      {DEAL_STAGE_LABELS[stage]}
     </span>
   );
 }

@@ -166,7 +166,7 @@ export function MeetingDetails({
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
       <span>
         {event.isAllDay
-          ? `${MEETING_DAY.format(start)} · All day`
+          ? `${MEETING_DAY.format(start)}, All day`
           : MESSAGE_TIME.formatRange(start, new Date(event.endsAt))}
       </span>
       {shown.length > 0 ? (
@@ -181,7 +181,7 @@ export function MeetingDetails({
                 />
               </TooltipTrigger>
               <TooltipContent>
-                {attendee.name ?? attendee.email} ·{" "}
+                {attendee.name ?? attendee.email},{" "}
                 {RESPONSES[attendee.responseStatus ?? "needsAction"] ??
                   "No reply"}
               </TooltipContent>

@@ -120,7 +120,7 @@ describe("TrackingFilingService", () => {
       identified: true,
       views: 1,
       pages: [{ host: "acme.com", path: "/pricing", views: 1 }],
-      firstTouch: { label: "newsletter · email · fall" },
+      firstTouch: { label: "newsletter, email, fall" },
     });
     // Another organization asking about the same id sees nothing.
     expect(

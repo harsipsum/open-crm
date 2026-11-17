@@ -59,10 +59,10 @@ const noun = (list: ListSummary, count: number) =>
 export function ListDescription({ list }: { list: ListSummary }) {
   return (
     <>
-      {list.description ? `${list.description} · ` : null}
+      {list.description ? `${list.description}, ` : null}
       {list.total.toLocaleString()} {noun(list, list.total)}
       {list.followUpDays
-        ? ` · Due after ${list.followUpDays} days quiet`
+        ? `, Due after ${list.followUpDays} days quiet`
         : null}
     </>
   );

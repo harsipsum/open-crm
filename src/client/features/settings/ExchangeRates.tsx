@@ -141,7 +141,7 @@ export function ExchangeRates({
                     {rate.name ? (
                       <span className="text-muted-foreground">
                         {" "}
-                        · {rate.name}
+                        {rate.name}
                       </span>
                     ) : null}
                   </TableCell>
@@ -210,7 +210,7 @@ function ManualRateForm({
     onSuccess: () => queryClient.invalidateQueries(),
   });
   const currencies = CURRENCIES.filter(({ code }) => code !== base).map(
-    ({ code, name }) => ({ value: code, label: `${code} · ${name}` }),
+    ({ code, name }) => ({ value: code, label: `${code}, ${name}` }),
   );
 
   const defaultValues: { currency: string; rate: string } = {

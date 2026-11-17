@@ -313,7 +313,7 @@ function PipelineSummary({
       </span>{" "}
       open pipeline
       {unconverted.count > 0
-        ? ` · ${unconverted.count} not counted (no ${unconverted.currencies.join(", ")} rate)`
+        ? `, ${unconverted.count} not counted (no ${unconverted.currencies.join(", ")} rate)`
         : null}
     </span>
   );

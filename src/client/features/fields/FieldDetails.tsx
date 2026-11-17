@@ -113,7 +113,7 @@ function Flag({ on }: { on: boolean }) {
     </>
   ) : (
     <>
-      <span aria-hidden>—</span>
+      <span>None</span>
       <span className="sr-only">No</span>
     </>
   );

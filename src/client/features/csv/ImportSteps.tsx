@@ -88,7 +88,7 @@ export function ColumnMapping({
             <TableRow key={`${header}-${column}`}>
               <TableCell className="font-medium">{header}</TableCell>
               <TableCell className="max-w-48 truncate text-muted-foreground">
-                {csv.rows.find((row) => row[column])?.[column] ?? "—"}
+                {csv.rows.find((row) => row[column])?.[column] ?? ""}
               </TableCell>
               <TableCell>
                 <TargetSelect
@@ -299,7 +299,7 @@ export function PreviewTable({
                         ) : null}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="text-muted-foreground">None</span>
                     )}
                   </TableCell>
                   {shown.map((target) => (

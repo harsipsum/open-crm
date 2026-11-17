@@ -55,7 +55,7 @@ function summaryOf(field: Field): string {
   }
   if (field.showOnTable) parts.push(TABLE_NOTE);
   if (field.showOnFilter) parts.push(FILTER_NOTE);
-  return parts.join(" · ");
+  return parts.join(", ");
 }
 
 /** `fields` with the live ones in the order of `ids`, for an optimistic reorder. */

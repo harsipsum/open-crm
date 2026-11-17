@@ -9,7 +9,7 @@ type Touch = { source: string; medium: string | null };
 
 function channel(touch: Touch): string {
   if (!touch.medium || touch.medium === "direct") return touch.source;
-  return `${touch.source} · ${touch.medium}`;
+  return `${touch.source}, ${touch.medium}`;
 }
 
 function Property({ label, children }: { label: string; children: ReactNode }) {
@@ -49,7 +49,7 @@ export function WebsiteActivity({ record }: { record: WebsiteActivityInput }) {
           </span>
           {activity.lastSeenAt ? (
             <span className="text-muted-foreground">
-              {" · last seen "}
+              {", last seen "}
               <RelativeTime date={activity.lastSeenAt} />
             </span>
           ) : null}
@@ -70,7 +70,7 @@ export function WebsiteActivity({ record }: { record: WebsiteActivityInput }) {
                 {topPage.path}
               </span>
               <span className="shrink-0 text-muted-foreground">
-                · <span className="tabular-nums">{topPage.views}</span>{" "}
+               , <span className="tabular-nums">{topPage.views}</span>{" "}
                 {topPage.views === 1 ? "view" : "views"}
               </span>
             </span>

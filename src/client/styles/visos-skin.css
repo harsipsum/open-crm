@@ -221,12 +221,12 @@ html:root [data-slot="sheet-content"] {
 }
 
 
-/* Controls: pill buttons and tabs, softly rounded fields. */
+/* Controls: pill buttons, softly rounded tabs and fields. */
 html:root [data-slot="button"] {
   border-radius: 9999px;
 }
 html:root :is([data-slot="tabs-list"], [data-slot="tabs-trigger"], [data-slot="toggle-group"], [data-slot="toggle-group-item"]) {
-  border-radius: 9999px;
+  border-radius: 10px;
 }
 html:root :is([data-slot="input"], [data-slot="select-trigger"], [data-slot="input-group"]) {
   border-radius: 12px;
@@ -320,5 +320,20 @@ html:root [data-slot="textarea"] {
   }
   html:root [data-slot="sidebar-menu-button"]:is([data-active], [aria-current="page"]) {
     animation: visos-settle 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+/* Arriving from the Star OS launcher: the app's content fades in over the same
+   lit backdrop, so moving between subdomains reads as one product. Opacity only,
+   on body (its background paints the canvas, so the backdrop stays put), with a
+   backwards fill so nothing stays applied once it lands. */
+@keyframes staros-arrive {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:root body {
+    animation: staros-arrive 260ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
   }
 }

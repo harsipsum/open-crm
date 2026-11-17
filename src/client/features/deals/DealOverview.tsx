@@ -37,7 +37,7 @@ type Mutations = ReturnType<typeof useDealMutations>;
 
 const CURRENCY_ITEMS = CURRENCIES.map((entry) => ({
   value: entry.code,
-  label: `${entry.code} · ${entry.name}`,
+  label: `${entry.code}, ${entry.name}`,
 }));
 
 /** The supported currencies, and a deal's own when it's one no longer supported. */
@@ -254,7 +254,7 @@ function ReportedValue({ deal, currency }: { deal: Deal; currency: string }) {
             ≈ {formatAmount(deal.baseAmount, deal.reportingCurrency)}
           </span>
         ) : (
-          `No ${currency} rate — left out of totals`
+          `No ${currency} rate, so it's left out of totals`
         )}
       </span>
     </div>

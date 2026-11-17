@@ -77,7 +77,7 @@ export function TrackingScript({
             <ol className="list-decimal space-y-1 pl-4 text-xs text-muted-foreground">
               <li>In Tag Manager, add a new Custom HTML tag.</li>
               <li>
-                Paste this snippet — not the one above — as the tag&apos;s HTML.
+                Paste this snippet, not the one above, as the tag&apos;s HTML.
               </li>
               <li>Trigger it on All Pages, then publish the container.</li>
             </ol>

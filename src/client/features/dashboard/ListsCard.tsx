@@ -142,19 +142,13 @@ function ListRow({ list }: { list: ListSummary }) {
                       stage.shade,
                     )}
                   />
-                  {stage.name}
-                  <span className="text-foreground tabular-nums">
-                    {stage.count.toLocaleString()}
-                  </span>
+                  {`${stage.name} ${stage.count.toLocaleString()}`}
                 </Link>
               </li>
             ))}
             {list.noStage > 0 ? (
               <li>
-                No stage{" "}
-                <span className="text-foreground tabular-nums">
-                  {list.noStage.toLocaleString()}
-                </span>
+                {`No stage ${list.noStage.toLocaleString()}`}
               </li>
             ) : null}
           </ul>
