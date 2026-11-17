@@ -1049,7 +1049,7 @@ export const suppressedContact = sqliteTable(
 
 /**
  * A member's own mailbox and calendar connection (Google or Microsoft): the
- * account it reads and the sources' scopes it reaches. The VisOS
+ * account it reads and the sources' scopes it reaches. The Star OS
  * holds the connection and its tokens (src/server/features/mailbox).
  */
 export const mailboxConnection = sqliteTable(

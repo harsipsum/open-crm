@@ -7,7 +7,7 @@ import { BRAND } from "@/shared/brand";
 /** The tab's title on a page without a name of its own. */
 export const PRODUCT_NAME = BRAND.appName;
 
-/** A route's `head`: its page's title in the tab, as "Companies · VisCRM". */
+/** A route's `head`: its page's title in the tab, as "Companies · Star CRM". */
 export function pageHead(name: string) {
   return { meta: [{ title: `${name} · ${PRODUCT_NAME}` }] };
 }

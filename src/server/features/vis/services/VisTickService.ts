@@ -5,7 +5,7 @@ import { SdrService } from "@/server/features/vis/services/SdrService";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 import { STAGE_ROLES, VISTAR_PIPELINE } from "@/shared/vis";
 
-// What moves a VisCRM deal along without a person, every minute (cron.ts):
+// What moves a Star CRM deal along without a person, every minute (cron.ts):
 // SDR timers close and escalate; company research runs on a new lead;
 // person research and the brief once it's qualified; the qualified-lead
 // conversion once it reaches the qualified stage or beyond, and the purchase
@@ -87,7 +87,7 @@ async function tickOrganization(
   return summary;
 }
 
-/** The cron's run over every organization with VisCRM leads. */
+/** The cron's run over every organization with Star CRM leads. */
 async function runDue(at: Date) {
   const origin = (await getOptionalEnvValue("VIS_CRM_ORIGIN")) ?? null;
   for (const organizationId of await VisRepository.organizationsWithLeads()) {

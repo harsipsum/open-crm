@@ -10,7 +10,7 @@ import type {
   VisApp,
 } from "@/shared/vis";
 
-// VisCRM's work on a deal: research requests, the SDR's first-call timer and
+// Star CRM's work on a deal: research requests, the SDR's first-call timer and
 // the offline conversions. Every read and write takes the organization and
 // filters by it (AGENTS.md, Tenancy).
 

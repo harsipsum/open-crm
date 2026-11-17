@@ -54,7 +54,7 @@ async function requirePipeline(organizationId: string) {
 
 /**
  * The owner a new lead goes to: the member named, else whoever holds the
- * fewest VisCRM leads (round robin over the members).
+ * fewest Star CRM leads (round robin over the members).
  */
 async function ownerFor(organizationId: string, ownerEmail?: string) {
   const members = await AuthRepository.listMembers(organizationId);
@@ -408,7 +408,7 @@ async function addNote(
   const id = await ActivityRepository.insert({
     organizationId,
     type: "NOTE",
-    subject: app ? `From ${app}` : "VisCRM",
+    subject: app ? `From ${app}` : "Star CRM",
     body,
     occurredAt: new Date().toISOString(),
     dueAt: null,

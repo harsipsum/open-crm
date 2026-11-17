@@ -97,7 +97,7 @@ export default {
         },
       ],
     },
-    // VisCRM (src/server/features/vis): each optional; without one, its
+    // Star CRM (src/server/features/vis): each optional; without one, its
     // step waits and the deal's Lead section says so.
     "vis-research": {
       name: "Lead research",
@@ -155,7 +155,7 @@ export default {
     // An operator erasing an organization, with requests signed by
     // ERASURE_SECRET; 404 while it is unset (src/server/features/erasure).
     { path: "/internal/erase-organization", methods: ["POST"] },
-    // VisCRM's write API for the sibling apps; every call carries its app's
+    // Star CRM's write API for the sibling apps; every call carries its app's
     // key, which names the organization (src/server/features/vis/visApiRoute.ts).
     { path: "/api/vis/**", methods: ["GET", "POST"] },
   ],

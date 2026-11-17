@@ -8,9 +8,9 @@ import {
 const UNEXPECTED_ERROR_MESSAGE = "Something went wrong. Try again in a moment.";
 
 const STANDARD_MESSAGES: Record<ErrorCode, string> = {
-  UNAUTHENTICATED: "Sign in on VisOS and try again.",
+  UNAUTHENTICATED: "Sign in on Star OS and try again.",
   AUTH_CONFIG_MISSING:
-    "The CRM isn't set up on your VisOS yet. Ask your admin to install it.",
+    "The CRM isn't set up on your Star OS yet. Ask your admin to install it.",
   FORBIDDEN: "Only an owner or an admin can do that.",
   NOT_FOUND: "The requested record was not found.",
   VALIDATION_ERROR: "Check your input and try again.",
@@ -18,7 +18,7 @@ const STANDARD_MESSAGES: Record<ErrorCode, string> = {
   RATE_LIMITED: "Too many requests. Try again in a moment.",
   UPSTREAM_UNAVAILABLE: "A provider is unavailable. Try again in a moment.",
   INTEGRATION_UNAVAILABLE:
-    "That connection isn't set up on this VisOS yet. An admin sets it up there.",
+    "That connection isn't set up on this Star OS yet. An admin sets it up there.",
   INTERNAL_ERROR: UNEXPECTED_ERROR_MESSAGE,
 };
 

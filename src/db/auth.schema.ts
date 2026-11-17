@@ -7,7 +7,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
-// The people and organizations the VisOS signs in, mirrored so
+// The people and organizations the Star OS signs in, mirrored so
 // CRM rows can reference them. The shapes are Better Auth's, as in OpenSEO,
 // so the same repositories work on both: the gateway's `sub` is `user.id`,
 // its organization id is `organization.id`, and a `member` row mirrors one

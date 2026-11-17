@@ -1,4 +1,4 @@
-// VisCRM: the lead-to-won layer on top of the CRM (sources and click ids set
+// Star CRM: the lead-to-won layer on top of the CRM (sources and click ids set
 // at first touch, per-app write keys, research, SDR timers, the won handoff
 // and offline conversions). Shared by the server and the deal panel.
 
@@ -63,7 +63,7 @@ export const INBOUND_SOURCES: readonly LeadSource[] = [
 ];
 
 /**
- * A phone number as VisCRM matches it: E.164, "+" and digits only, so a
+ * A phone number as Star CRM matches it: E.164, "+" and digits only, so a
  * WhatsApp sender (+971501234567) and a form ("00971 50 123 4567") are the
  * same person. Null when there aren't enough digits to be a number.
  */
@@ -132,7 +132,7 @@ export const VISTAR_PIPELINE = {
 } as const;
 
 /**
- * The stages VisCRM acts on, by name: a new lead lands at `intake`; reaching
+ * The stages Star CRM acts on, by name: a new lead lands at `intake`; reaching
  * `qualified` or any later open stage runs the person research and the
  * brief and sends the qualified-lead conversion; `won` hands off to Asana
  * and sends the purchase conversion.

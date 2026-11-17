@@ -40,7 +40,7 @@ const lead = {
   currency: "AED" as const,
 };
 
-describe("VisCRM guards", () => {
+describe("Star CRM guards", () => {
   beforeEach(async () => {
     await database.exec(`
       DELETE FROM conversion_event; DELETE FROM asana_handoff; DELETE FROM deal_order;

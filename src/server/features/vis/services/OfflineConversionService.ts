@@ -154,7 +154,7 @@ async function payloadFor(
             ...(viaWhatsApp ? { messaging_channel: "whatsapp" } : {}),
             user_data: userData,
             custom_data: {
-              lead_event_source: "VisCRM",
+              lead_event_source: "Star CRM",
               ...(value
                 ? { value: value.value, currency: value.currency }
                 : {}),

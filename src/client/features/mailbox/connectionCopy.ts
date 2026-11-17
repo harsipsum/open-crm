@@ -38,18 +38,18 @@ export const COPY = {
   },
 } as const satisfies Record<MailboxProvider, Record<string, string>>;
 
-/** What a disconnect leaves: the connection on VisOS. */
+/** What a disconnect leaves: the connection on Star OS. */
 export const REVOKED =
-  "The CRM stops reading it. To remove the connection itself, disconnect it under Connected accounts on VisOS.";
+  "The CRM stops reading it. To remove the connection itself, disconnect it under Connected accounts on Star OS.";
 
-/** "Google isn't set up on this VisOS yet. An admin sets X and Y." */
+/** "Google isn't set up on this Star OS yet. An admin sets X and Y." */
 export function notSetUpCopy(
   name: string,
   settings: readonly string[],
 ): string {
   return settings.length > 0
-    ? `${name} isn't set up on this VisOS yet. An admin sets ${settings.join(" and ")}.`
-    : `${name} isn't set up on this VisOS yet.`;
+    ? `${name} isn't set up on this Star OS yet. An admin sets ${settings.join(" and ")}.`
+    : `${name} isn't set up on this Star OS yet.`;
 }
 
 export const SOURCES = {
@@ -74,7 +74,7 @@ export function connectErrorCopy(
   const name = COPY[provider].name;
   switch (error) {
     case "not_connected":
-      return `VisOS has no ${name} connection for you. Connect again.`;
+      return `Star OS has no ${name} connection for you. Connect again.`;
     case "scope_not_granted":
       return provider === "google"
         ? "Google didn't grant access to Gmail or Calendar. Connect again and leave at least one of them ticked."

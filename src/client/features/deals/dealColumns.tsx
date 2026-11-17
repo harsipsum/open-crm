@@ -82,7 +82,7 @@ export function dealColumns({
       header: ({ column }) => <SortableHeader column={column} label="Stage" />,
       meta: { label: "Stage", width: 120 },
       // A deal in a named pipeline (Vistar's HubSpot stages) shows that
-      // pipeline's stage; VisCRM's own flows move it.
+      // pipeline's stage; Star CRM's own flows move it.
       cell: ({ row }) =>
         row.original.pipelineStage ? (
           <span className="inline-flex items-center gap-1.5 text-sm whitespace-nowrap">

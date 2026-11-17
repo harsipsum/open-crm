@@ -7,7 +7,7 @@ import { roundMoney } from "@/shared/currency";
 import type { ConsentState } from "@/shared/vis";
 import type { OrderInput } from "@/types/schemas/vis";
 
-// A deal as VisCRM sees it: where the lead came from, its research and what
+// A deal as Star CRM sees it: where the lead came from, its research and what
 // it cost, the SDR's first call, the conversions it sent and its Asana task.
 // The deal sheet's Lead tab and the tools read this one shape.
 
@@ -95,7 +95,7 @@ async function setConsent(
 ) {
   const lead = await VisRepository.attribution(organizationId, input.dealId);
   if (!lead) {
-    throw new AppError("NOT_FOUND", "This deal has no VisCRM lead.");
+    throw new AppError("NOT_FOUND", "This deal has no Star CRM lead.");
   }
   await VisRepository.updateAttribution(organizationId, input.dealId, {
     consent: input.consent,

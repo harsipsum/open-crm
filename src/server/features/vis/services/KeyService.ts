@@ -77,7 +77,7 @@ async function authenticate(
   pinnedOrganizationId: string | undefined,
 ): Promise<KeyCaller> {
   if (!presented?.startsWith("vck_")) {
-    throw new AppError("UNAUTHENTICATED", "A VisCRM app key is required.");
+    throw new AppError("UNAUTHENTICATED", "A Star CRM app key is required.");
   }
   const found = await VisKeyRepository.keyByHash(await sha256Hex(presented));
   if (

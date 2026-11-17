@@ -76,7 +76,7 @@ describe("ConnectionService", () => {
     gateway.setReady(false);
     await expect(
       ConnectionService.startConnect("microsoft", ORIGIN),
-    ).rejects.toThrow("isn't set up on this VisOS");
+    ).rejects.toThrow("isn't set up on this Star OS");
 
     const asMember = await ConnectionService.status({ ...ANA, role: "member" });
     expect(asMember.providers[0]).toMatchObject({

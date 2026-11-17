@@ -32,7 +32,7 @@ export async function runCron(scheduledTime: number): Promise<void> {
   const onTheHour = at.getUTCMinutes() === 0;
   const jobs: Promise<unknown>[] = [
     MailboxSyncService.runDue(),
-    // VisCRM: SDR timers, research, conversions and the won handoff.
+    // Star CRM: SDR timers, research, conversions and the won handoff.
     VisTickService.runDue(at),
     AsanaHandoffService.runDue(),
   ];
