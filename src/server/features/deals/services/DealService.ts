@@ -243,6 +243,7 @@ async function setStage(
     id,
     reason,
     movedById,
+    queueAsana: (await getOptionalEnvValue("ASANA_WON_ENABLED")) === "1",
   });
   if (!moved) {
     // Someone moved it first: fine if they moved it here too.
@@ -455,3 +456,4 @@ export const DealService = {
   bulkRestore,
   bulkPurge,
 };
+import { getOptionalEnvValue } from "@/server/lib/runtime-env";

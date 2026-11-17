@@ -5,7 +5,7 @@ import {
 
 // The public routes' first guard, before anything reads the database: how
 // many requests one address may make a minute, to one site and in all.
-// Every App's deploy policy refuses Workers Rate Limiting bindings (the
+// VisOS's deploy policy refuses Workers Rate Limiting bindings (the
 // CLI's ALLOWED_BINDINGS), so this counts in the isolate's memory. It stops
 // one address hammering a site, not a crowd spread over Cloudflare's
 // machines; the counters in the database (per site and visitor a minute,

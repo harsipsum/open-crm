@@ -20,8 +20,8 @@ export function MembersSettings() {
           label="Team access"
           description={
             canManage
-              ? "Manage members, roles and invitations on Every App."
-              : "Ask an owner or admin to manage members on Every App."
+              ? "Manage members, roles and invitations on VisOS."
+              : "Ask an owner or admin to manage members on VisOS."
           }
         >
           {canManage && account?.gatewayUrl ? (

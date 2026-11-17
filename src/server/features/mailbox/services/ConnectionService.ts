@@ -28,7 +28,7 @@ import {
 } from "@/shared/mailbox";
 import { hasOrgPermission } from "@/shared/org-permissions";
 
-// A member's own mailbox connections. The Every App gateway runs the OAuth
+// A member's own mailbox connections. The VisOS runs the OAuth
 // flow and holds the connection (providers/gateway.ts): Connect sends the
 // member to the gateway's connect page, which sends them back to
 // CONNECTED_PATH, where the CRM reads which mailbox the connection reaches,
@@ -49,7 +49,7 @@ async function startConnect(
   if (!(await providerStatus(provider)).offered) {
     throw new AppError(
       "INTEGRATION_UNAVAILABLE",
-      `${LABEL[provider]} isn't set up on this Every App gateway.`,
+      `${LABEL[provider]} isn't set up on this VisOS.`,
     );
   }
   return { url: await connectLink(provider, origin) };
@@ -303,7 +303,7 @@ async function suppressDomain(
 
 /**
  * Stops capture; what was captured stays. The connection itself is the
- * gateway's: the member removes it under Connected accounts on Every App.
+ * gateway's: the member removes it under Connected accounts on VisOS.
  */
 async function disconnect(member: Member, provider: MailboxProvider) {
   await SyncStateRepository.removeSources(

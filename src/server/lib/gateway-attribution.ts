@@ -3,7 +3,7 @@ import { IDENTITY_HEADER } from "@every-app/sdk/internal";
 import type { EveryAppUser, GatewayCallFor } from "@every-app/sdk/server";
 import { decodeJwt } from "jose";
 
-// Whom the CRM's calls through the Every App gateway are for. The gateway
+// Whom the CRM's calls through the VisOS are for. The gateway
 // counts each call against an organization, so every
 // call says whose it is. The SDK takes that as `for` (packages/sdk/README.md,
 // "Whom a call is for"):

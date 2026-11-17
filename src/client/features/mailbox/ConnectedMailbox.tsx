@@ -112,7 +112,7 @@ function failureSignature(sources: readonly Source[]): string {
   ).join("|");
 }
 
-/** Sends the member to Every App, which connects the provider and comes back. */
+/** Sends the member to VisOS, which connects the provider and comes back. */
 export function useConnect(provider: MailboxProvider) {
   return useMutation({
     mutationFn: () => startConnect({ data: { provider } }),
@@ -244,7 +244,7 @@ export function ConnectedMailbox({
             <TriangleAlert aria-hidden />
             <AlertTitle>Reconnect {copy.name}</AlertTitle>
             <AlertDescription>
-              Connect your account again through Every App so new email and
+              Connect your account again through VisOS so new email and
               meetings can keep syncing.
             </AlertDescription>
           </Alert>

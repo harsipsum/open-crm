@@ -4,6 +4,8 @@ import { CurrencyService } from "@/server/features/currency/services/CurrencySer
 import { TrackingRetentionService } from "@/server/features/tracking/services/TrackingRetentionService";
 import { MemberMailboxService } from "@/server/features/mailbox/services/MemberMailboxService";
 import { MailboxSyncService } from "@/server/features/mailbox/services/MailboxSyncService";
+import { VisTickService } from "@/server/features/vis/services/VisTickService";
+import { AsanaHandoffService } from "@/server/features/vis/services/AsanaHandoffService";
 
 // The Worker's one cron trigger fires every minute (cloudflare.config.ts);
 // what runs on a tick depends on its time:
@@ -28,7 +30,12 @@ const TRACKING_RETENTION_MINUTE = 30;
 export async function runCron(scheduledTime: number): Promise<void> {
   const at = new Date(scheduledTime);
   const onTheHour = at.getUTCMinutes() === 0;
-  const jobs: Promise<unknown>[] = [MailboxSyncService.runDue()];
+  const jobs: Promise<unknown>[] = [
+    MailboxSyncService.runDue(),
+    // VisCRM: SDR timers, research, conversions and the won handoff.
+    VisTickService.runDue(at),
+    AsanaHandoffService.runDue(),
+  ];
   if (onTheHour) jobs.push(CurrencyService.refreshDueRates());
   if (onTheHour && at.getUTCHours() === PURGE_HOUR_UTC) {
     jobs.push(

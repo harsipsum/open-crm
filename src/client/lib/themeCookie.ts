@@ -1,4 +1,4 @@
-// The light/dark pick every Every App surface shares. The launcher and each
+// The light/dark pick every VisOS surface shares. The launcher and each
 // app live on their own host (`<app>.<gateway host>`), so localStorage is per
 // surface; a cookie on the Gateway host reaches all of them. It is a display
 // choice only, so it is readable by script (not HttpOnly). This is a copy of

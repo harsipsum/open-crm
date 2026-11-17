@@ -2,6 +2,8 @@ import { useState, type ReactNode } from "react";
 import { Button } from "@/client/components/ui/button";
 import { toast } from "sonner";
 import { StageStepper } from "@/client/features/deals/DealStage";
+import { cn } from "cn";
+import { VISTAR_PIPELINE } from "@/shared/vis";
 import {
   closeDay,
   formatAmount,
@@ -49,6 +51,41 @@ function currencyItems(currency: string) {
 }
 
 /**
+ * Vistar's pipeline as the deal moves through it, read only: the agents and
+ * VisCRM's own flows move the stage. On Hold and Deal Lost show only when the
+ * deal is there.
+ */
+function PipelineSteps({ current }: { current: string }) {
+  const steps = VISTAR_PIPELINE.stages.filter(
+    (step) => (step !== "On Hold" && step !== "Deal Lost") || step === current,
+  );
+  const currentIndex = steps.findIndex((step) => step === current);
+  return (
+    <ol className="flex w-full gap-1">
+      {steps.map((step, index) => {
+        const reached = index <= currentIndex;
+        return (
+          <li key={step} className="flex min-w-0 flex-1" title={step}>
+            <span
+              aria-current={step === current ? "step" : undefined}
+              className={cn(
+                "min-w-0 flex-1 border-t-2 pt-2 text-left text-xs",
+                reached
+                  ? "border-foreground text-foreground"
+                  : "border-border text-muted-foreground",
+                step === current && "font-medium",
+              )}
+            >
+              <span className="block truncate">{step}</span>
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/**
  * A deal's stage, details and description; related contacts follow below.
  */
 export function DealOverview({
@@ -69,7 +106,11 @@ export function DealOverview({
   return (
     <div>
       <SheetSection title="Stage">
-        <StageStepper dealId={deal.id} stage={deal.stage} />
+        {deal.pipeline === VISTAR_PIPELINE.name && deal.pipelineStage ? (
+          <PipelineSteps current={deal.pipelineStage} />
+        ) : (
+          <StageStepper dealId={deal.id} stage={deal.stage} />
+        )}
         <dl className="mt-3 space-y-1 text-sm">
           <Property label="Opened">
             <LocalDateTime date={deal.createdAt} />

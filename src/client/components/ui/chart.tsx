@@ -4,7 +4,7 @@ import * as RechartsPrimitive from "recharts";
 import type { TooltipPayloadEntry, TooltipValueType } from "recharts";
 
 // Format: { THEME_NAME: CSS_SELECTOR }
-const THEMES = { light: "", dark: "[data-theme=openseo-dark]" } as const;
+const THEMES = { light: "", dark: "[data-theme=visos-dark]" } as const;
 
 // A series with no color or theme takes the next color of the unified
 // --chart-* palette, so new charts get theme-aware colors by default.

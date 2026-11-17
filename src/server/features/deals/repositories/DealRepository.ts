@@ -14,6 +14,7 @@ import { db } from "@/db";
 import { runBatch } from "@/db/runBatch";
 import {
   activity,
+  asanaWonQueue,
   company,
   deal,
   pipeline,
@@ -165,6 +166,7 @@ async function update(
 }
 
 type StageMove = {
+  queueAsana?: boolean;
   id: string;
   companyId: string;
   from: DealStage;
@@ -241,6 +243,30 @@ async function moveStage(
             notExists(moved),
           ),
         ),
+      ...(move.to === "CLOSED_WON" && move.queueAsana
+        ? [
+            tx
+              .insert(asanaWonQueue)
+              .select(
+                tx
+                  .select({
+                    dealId: deal.id,
+                    organizationId: deal.organizationId,
+                    createdAt: sql<string>`${at}`.as("created_at"),
+                  })
+                  .from(deal)
+                  .where(
+                    and(
+                      inOrganization(organizationId, move.id),
+                      eq(deal.stage, move.to),
+                      eq(deal.stageChangedAt, at),
+                      exists(moved),
+                    ),
+                  ),
+              )
+              .onConflictDoNothing(),
+          ]
+        : []),
       tx
         .update(company)
         .set({ lastActivityAt: at })

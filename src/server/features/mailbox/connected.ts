@@ -17,7 +17,7 @@ export async function handleConnected(
   try {
     member = await resolveUserContextFromHeaders(request.headers);
   } catch {
-    return new Response("Sign in on Every App, then connect again.", {
+    return new Response("Sign in on VisOS, then connect again.", {
       status: 401,
     });
   }

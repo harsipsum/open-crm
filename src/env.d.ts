@@ -6,7 +6,7 @@ declare namespace Cloudflare {
     // Set by `everyapp deploy`: the CRM is pinned to that organization. Unset
     // under `everyapp dev`.
     EVERY_APP_ORG_ID?: string;
-    // The gateway's origin, for the sidebar's "Back to Every App".
+    // The gateway's origin, for the sidebar's "Back to VisOS".
     GATEWAY_URL?: string;
     // Set only while an operator erases an organization
     // (docs/maintainers/runbooks/erase-organization.md): signs its requests.

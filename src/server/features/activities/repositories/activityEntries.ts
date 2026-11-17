@@ -105,7 +105,12 @@ export function selectEntries(where: SQL | undefined) {
         eq(calendarEvent.organizationId, activity.organizationId),
       ),
     )
-    .where(where);
+    .where(and(where, visibleActivity()));
+}
+
+/** Archived imported notes remain preserved without entering live timelines. */
+export function visibleActivity() {
+  return sql`coalesce(json_extract(${activity.meta}, '$.archived'), 0) != 1`;
 }
 
 type EntryRow = Awaited<ReturnType<typeof selectEntries>>[number];

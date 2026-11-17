@@ -1,11 +1,13 @@
+@layer visos-skin;
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./visos-skin.css";
 
 /* shadcn components here are built on Base UI. The shadcn variables below are
    the source of truth for theme colors. */
 
-@custom-variant dark (&:where([data-theme=openseo-dark], [data-theme=openseo-dark] *));
+@custom-variant dark (&:where([data-theme=visos-dark], [data-theme=visos-dark] *));
 
 @theme {
   --container-8xl: 88rem;
@@ -62,7 +64,7 @@
 }
 
 :where(:root),
-[data-theme="openseo"] {
+[data-theme="visos"] {
   color-scheme: light;
   --radius: 0.5rem;
   --background: oklch(95.5% 0 0);
@@ -104,7 +106,7 @@
   --sidebar-ring: oklch(50% 0.12 262);
 }
 
-[data-theme="openseo-dark"] {
+[data-theme="visos-dark"] {
   color-scheme: dark;
   --background: oklch(18% 0 0);
   --foreground: oklch(92% 0 0);
@@ -246,28 +248,28 @@ select:not([data-slot]) {
   --tw-ring-color: color-mix(in oklab, #d946ef 30%, transparent);
 }
 
-html[data-theme="openseo-dark"] .tag-chip-slate {
+html[data-theme="visos-dark"] .tag-chip-slate {
   color: #cbd5e1;
 }
-html[data-theme="openseo-dark"] .tag-chip-rose {
+html[data-theme="visos-dark"] .tag-chip-rose {
   color: #fda4af;
 }
-html[data-theme="openseo-dark"] .tag-chip-amber {
+html[data-theme="visos-dark"] .tag-chip-amber {
   color: #fcd34d;
 }
-html[data-theme="openseo-dark"] .tag-chip-lime {
+html[data-theme="visos-dark"] .tag-chip-lime {
   color: #d9f99d;
 }
-html[data-theme="openseo-dark"] .tag-chip-emerald {
+html[data-theme="visos-dark"] .tag-chip-emerald {
   color: #6ee7b7;
 }
-html[data-theme="openseo-dark"] .tag-chip-sky {
+html[data-theme="visos-dark"] .tag-chip-sky {
   color: #7dd3fc;
 }
-html[data-theme="openseo-dark"] .tag-chip-violet {
+html[data-theme="visos-dark"] .tag-chip-violet {
   color: #c4b5fd;
 }
-html[data-theme="openseo-dark"] .tag-chip-fuchsia {
+html[data-theme="visos-dark"] .tag-chip-fuchsia {
   color: #f5d0fe;
 }
 
@@ -318,29 +320,29 @@ html[data-theme="openseo-dark"] .tag-chip-fuchsia {
   --tw-ring-color: color-mix(in oklab, #b91c1c 32%, transparent);
 }
 
-html[data-theme="openseo-dark"] .score-tier-na {
+html[data-theme="visos-dark"] .score-tier-na {
   color: #cbd5e1;
 }
-html[data-theme="openseo-dark"] .score-tier-1 {
+html[data-theme="visos-dark"] .score-tier-1 {
   color: #6ee7b7;
 }
-html[data-theme="openseo-dark"] .score-tier-2 {
+html[data-theme="visos-dark"] .score-tier-2 {
   color: #bef264;
 }
-html[data-theme="openseo-dark"] .score-tier-3 {
+html[data-theme="visos-dark"] .score-tier-3 {
   color: #fde047;
 }
-html[data-theme="openseo-dark"] .score-tier-4 {
+html[data-theme="visos-dark"] .score-tier-4 {
   color: #fdba74;
 }
-html[data-theme="openseo-dark"] .score-tier-5 {
+html[data-theme="visos-dark"] .score-tier-5 {
   color: #fca5a5;
 }
-html[data-theme="openseo-dark"] .score-tier-6 {
+html[data-theme="visos-dark"] .score-tier-6 {
   color: #fda4af;
 }
 
-html[data-theme="openseo-dark"] {
+html[data-theme="visos-dark"] {
   --trend-grid-color: oklch(78% 0.01 255 / 0.22);
   --trend-axis-color: oklch(84% 0.01 255 / 0.62);
   --trend-fill-start-opacity: 0.24;

@@ -18,6 +18,7 @@ import {
   selectEntries,
   timelineAt,
   toEntry,
+  visibleActivity,
 } from "@/server/features/activities/repositories/activityEntries";
 import type { ActivityType } from "@/shared/crm-enums";
 import type { RecordRef } from "@/shared/records";
@@ -66,7 +67,22 @@ function about(organizationId: string, record: RecordRef) {
   }[record.kind];
   return and(
     eq(activity.organizationId, organizationId),
-    eq(anchor, record.id),
+    visibleActivity(),
+    or(
+      eq(anchor, record.id),
+      sql`exists (
+      select 1 from hubspot_object note
+      join hubspot_association edge on edge.organization_id = note.organization_id
+        and edge.portal_id = note.portal_id and edge.from_type = 'notes'
+        and edge.from_id = note.source_id
+      join hubspot_object linked on linked.organization_id = edge.organization_id
+        and linked.portal_id = edge.portal_id and linked.object_type = edge.to_type
+        and linked.source_id = edge.to_id
+      where note.organization_id = ${organizationId} and note.object_type = 'notes'
+        and note.target_id = ${activity.id} and linked.target_id = ${record.id}
+        and edge.to_type = ${{ company: "companies", contact: "contacts", deal: "deals" }[record.kind]}
+    )`,
+    ),
   );
 }
 

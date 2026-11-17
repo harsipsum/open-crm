@@ -1,7 +1,15 @@
 import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { runBatch } from "@/db/runBatch";
-import { user } from "@/db/schema";
+import {
+  user,
+  company,
+  contact,
+  deal,
+  activity,
+  member,
+  hubspotObject,
+} from "@/db/schema";
 
 // The gateway's people are stored in the `user` table, keyed by the gateway's
 // `sub`, so every CRM table that references a person (owners, authors,
@@ -22,6 +30,18 @@ export async function ensureUserRecord(userId: string, userEmail: string) {
     where: eq(user.id, userId),
   });
   if (existing?.email === userEmail) return userEmail;
+
+  const imported = await db
+    .select({ id: user.id, organizationId: hubspotObject.organizationId })
+    .from(hubspotObject)
+    .innerJoin(user, eq(user.id, hubspotObject.targetId))
+    .where(
+      and(
+        eq(hubspotObject.objectType, "owners"),
+        eq(user.email, userEmail),
+        sql`${user.id} like 'hs:%:owners:%'`,
+      ),
+    );
 
   await runBatch((tx) => [
     tx
@@ -46,6 +66,63 @@ export async function ensureUserRecord(userId: string, userEmail: string) {
             emailVerified: true,
           })
           .onConflictDoNothing(),
+    ...imported.flatMap((owner) => [
+      tx
+        .update(company)
+        .set({ ownerId: userId })
+        .where(
+          and(
+            eq(company.organizationId, owner.organizationId),
+            eq(company.ownerId, owner.id),
+          ),
+        ),
+      tx
+        .update(contact)
+        .set({ ownerId: userId })
+        .where(
+          and(
+            eq(contact.organizationId, owner.organizationId),
+            eq(contact.ownerId, owner.id),
+          ),
+        ),
+      tx
+        .update(deal)
+        .set({ ownerId: userId })
+        .where(
+          and(
+            eq(deal.organizationId, owner.organizationId),
+            eq(deal.ownerId, owner.id),
+          ),
+        ),
+      tx
+        .update(activity)
+        .set({ createdById: userId })
+        .where(
+          and(
+            eq(activity.organizationId, owner.organizationId),
+            eq(activity.createdById, owner.id),
+          ),
+        ),
+      tx
+        .update(member)
+        .set({ userId })
+        .where(
+          and(
+            eq(member.organizationId, owner.organizationId),
+            eq(member.userId, owner.id),
+          ),
+        ),
+      tx
+        .update(hubspotObject)
+        .set({ targetId: userId })
+        .where(
+          and(
+            eq(hubspotObject.objectType, "owners"),
+            eq(hubspotObject.organizationId, owner.organizationId),
+            eq(hubspotObject.targetId, owner.id),
+          ),
+        ),
+    ]),
   ]);
   return userEmail;
 }

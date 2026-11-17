@@ -10,8 +10,8 @@ import {
 
 export type { ThemePreference };
 
-const LIGHT_THEME_NAME = "openseo";
-const DARK_THEME_NAME = "openseo-dark";
+const LIGHT_THEME_NAME = "visos";
+const DARK_THEME_NAME = "visos-dark";
 
 const THEME_STORAGE_KEY = "theme-preference";
 const THEME_CHANGE_EVENT = "theme-preference-change";
