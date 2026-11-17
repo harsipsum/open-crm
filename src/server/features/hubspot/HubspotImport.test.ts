@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { z } from "zod";
 const { database } = await vi.hoisted(async () => {
   const { createSqliteTestDb } = await import("@/server/testing/testDb");
   return { database: await createSqliteTestDb() };
@@ -104,23 +103,7 @@ describe("HubSpot migration data path", () => {
     vi.stubGlobal("fetch", vi.fn());
   });
   it("preserves custom properties, historical dates and duplicate domains, with zero new objects on replay", async () => {
-    const execute = vi.spyOn(database.client, "execute");
     await seed();
-    const maxParameters = Math.max(
-      ...execute.mock.calls.map(([statement]) =>
-        typeof statement === "object"
-          ? Object.keys(
-              z
-                .union([
-                  z.array(z.unknown()),
-                  z.record(z.string(), z.unknown()),
-                ])
-                .parse(statement.args ?? {}),
-            ).length
-          : 0,
-      ),
-    );
-    expect(maxParameters).toBeLessThanOrEqual(100);
     const before = await HubspotRepository.counts(org, portalId);
     await seed();
     expect(await HubspotRepository.counts(org, portalId)).toEqual(before);

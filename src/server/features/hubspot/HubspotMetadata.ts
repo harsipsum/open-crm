@@ -43,16 +43,25 @@ export async function metadataWrite({
     };
     writes.push(db.insert(user).values(value).onConflictDoNothing());
     writes.push(
-      db
-        .insert(member)
-        .values({
-          id: target(org, portal, "members", row.id),
-          organizationId: org,
-          userId: id,
-          role: "member",
-          createdAt: new Date(createdAt),
-        })
-        .onConflictDoNothing(),
+      row.archived
+        ? db
+            .delete(member)
+            .where(
+              and(
+                eq(member.organizationId, org),
+                eq(member.id, target(org, portal, "members", row.id)),
+              ),
+            )
+        : db
+            .insert(member)
+            .values({
+              id: target(org, portal, "members", row.id),
+              organizationId: org,
+              userId: id,
+              role: "member",
+              createdAt: new Date(createdAt),
+            })
+            .onConflictDoNothing(),
     );
   } else if (kind === "pipelines") {
     const name = text(row.label) ?? row.id;

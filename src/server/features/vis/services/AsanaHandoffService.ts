@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { HubspotSourceRepository } from "@/server/features/hubspot/HubspotSourceRepository";
 import { AsanaQueueRepository } from "../repositories/AsanaQueueRepository";
 import { DealService } from "@/server/features/deals/services/DealService";
 import { VisRepository } from "@/server/features/vis/repositories/VisRepository";
@@ -83,12 +84,36 @@ async function fieldValues(organizationId: string, dealId: string) {
   const found = await DealService.getDeal(organizationId, dealId);
   const lead = await VisRepository.attribution(organizationId, dealId);
   const sold = await VisRepository.order(organizationId, dealId);
+  const properties = await HubspotSourceRepository.dealProperties(
+    organizationId,
+    dealId,
+  );
+  const sourceNumber = (key: string) => {
+    const value = properties[key];
+    return value && Number.isFinite(Number(value)) ? Number(value) : null;
+  };
+  const sourceProduct =
+    Object.values(PRODUCT_LABELS).find((label) =>
+      properties.product___solution
+        ?.toLowerCase()
+        .includes(label.toLowerCase()),
+    ) ??
+    properties.product___solution ??
+    null;
+  const sourceOrder = /renew|existing/i.test(properties.dealtype ?? "")
+    ? "Renewal"
+    : /upgrade/i.test(properties.dealtype ?? "")
+      ? "Upgrade"
+      : /new/i.test(properties.dealtype ?? "")
+        ? "New"
+        : null;
   const users = sold?.users ?? lead?.users ?? null;
   const values: Record<string, FieldValue> = {
     "Total Contract Value": found.amount,
-    "Order Type": lead ? ORDER_TYPE_LABELS[lead.orderType] : null,
-    "License Revenue": sold?.licenseRevenue ?? null,
-    "Implementation Value": sold?.implementationValue ?? null,
+    "Order Type": lead ? ORDER_TYPE_LABELS[lead.orderType] : sourceOrder,
+    "License Revenue": sold?.licenseRevenue ?? sourceNumber("license_revenue"),
+    "Implementation Value":
+      sold?.implementationValue ?? sourceNumber("implementation_value"),
     "Implementation Reqd?":
       sold?.implementationRequired === undefined ||
       sold?.implementationRequired === null
@@ -96,7 +121,7 @@ async function fieldValues(organizationId: string, dealId: string) {
         : sold.implementationRequired
           ? "Yes"
           : "No",
-    Product: lead?.product ? PRODUCT_LABELS[lead.product] : null,
+    Product: lead?.product ? PRODUCT_LABELS[lead.product] : sourceProduct,
     "Asana License Type":
       sold?.asanaLicenseType ?? (lead?.product === "ASANA" ? null : "N/A"),
     "No. Of Users": users,
@@ -225,8 +250,10 @@ async function handOff(
         ? ["", `Missing at handoff: ${missing.join(", ")}`]
         : []),
     ].join("\n");
-    const productLabel = lead?.product ? PRODUCT_LABELS[lead.product] : "Deal";
-    const orderLabel = lead ? ORDER_TYPE_LABELS[lead.orderType] : "New";
+    const productLabel =
+      typeof values.Product === "string" ? values.Product : "Deal";
+    const orderLabel =
+      typeof values["Order Type"] === "string" ? values["Order Type"] : "New";
     taskAttempted = true;
     const task = taskAnswer.parse(
       await asana(token, "/tasks", {
