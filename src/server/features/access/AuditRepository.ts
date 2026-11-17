@@ -44,10 +44,10 @@ export function auditDetail(data: unknown): {
   if (typeof data !== "object" || data === null) {
     return { recordId: null, detail: {} };
   }
-  const input = data as Record<string, unknown>;
+  const input = (key: string): unknown => Reflect.get(data, key);
   const detail: Record<string, unknown> = {};
   for (const key of KEPT_KEYS) {
-    const value = input[key];
+    const value = input(key);
     if (
       typeof value === "string" ||
       typeof value === "number" ||
@@ -57,13 +57,14 @@ export function auditDetail(data: unknown): {
       detail[key] = typeof value === "string" ? value.slice(0, 120) : value;
     }
   }
-  if (Array.isArray(input.ids)) {
-    const ids = input.ids.filter((id): id is string => typeof id === "string");
+  const rawIds = input("ids");
+  if (Array.isArray(rawIds)) {
+    const ids = rawIds.filter((id): id is string => typeof id === "string");
     detail.count = ids.length;
     detail.ids = ids.slice(0, 50);
   }
   const recordId =
-    [input.id, input.dealId, input.contactId, input.companyId].find(
+    [input("id"), input("dealId"), input("contactId"), input("companyId")].find(
       (value): value is string => typeof value === "string",
     ) ?? null;
   return { recordId, detail };
