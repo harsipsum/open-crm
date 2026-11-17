@@ -198,7 +198,12 @@ export async function runImport({
       (!resumeFrom || TYPES.indexOf(type) >= TYPES.indexOf(resumeFrom));
     ids[type] = [];
     const schema = await hs.request(`/crm/v3/properties/${type}`);
-    const properties = schema.results.map((row) => propertySchema.parse(row));
+    const archivedSchema = await hs.request(
+      `/crm/v3/properties/${type}?archived=true`,
+    );
+    const properties = [...schema.results, ...archivedSchema.results].map(
+      (row) => propertySchema.parse(row),
+    );
     const props = properties.map((p) => p.name);
     if (writeType)
       await objects(
