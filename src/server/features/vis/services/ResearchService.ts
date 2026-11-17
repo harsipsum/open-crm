@@ -206,9 +206,7 @@ async function writeBrief(organizationId: string, dealId: string) {
     fit: `${lead?.fitScore ?? 0}/100: ${(lead?.fitReasons ?? []).join("; ")}`,
     product: `${product}, ${lead?.orderType ?? "NEW"}${lead?.users ? `, ${lead.users} users` : ""}`,
     source: lead
-      ? [lead.source, lead.campaign, lead.creativeId]
-          .filter(Boolean)
-          .join(", ")
+      ? [lead.source, lead.campaign, lead.creativeId].filter(Boolean).join(", ")
       : "Unknown",
   };
   await finish(organizationId, dealId, "BRIEF", {

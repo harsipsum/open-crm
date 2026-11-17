@@ -61,9 +61,7 @@ export function ListDescription({ list }: { list: ListSummary }) {
     <>
       {list.description ? `${list.description}, ` : null}
       {list.total.toLocaleString()} {noun(list, list.total)}
-      {list.followUpDays
-        ? `, Due after ${list.followUpDays} days quiet`
-        : null}
+      {list.followUpDays ? `, Due after ${list.followUpDays} days quiet` : null}
     </>
   );
 }
