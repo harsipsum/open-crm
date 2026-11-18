@@ -11,7 +11,7 @@
 // it or the line above.
 //
 // Usage: node scripts/check-plain-words.mjs [dir ...]   (default: src app web workers public)
-import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const ROOT = process.cwd();
@@ -27,6 +27,7 @@ const CONSOLE = /\bconsole\.(?:log|info|warn|error|debug)\(/;
 
 // "may" counts only as a guess ("may be", "may have"), not as permission
 // ("only listed domains may send"). Lowercase only, so the month "May" passes.
+/** @type {Array<[RegExp, string]>} */
 const RULES = [
   [/\b(?:not |was not |wasn't )?read live\b/i, "read live"],
   [/\bfrom (?:this|our) side\b/i, "from this side"],
@@ -44,7 +45,12 @@ const RULES = [
   [/\bwe (?:think|believe)\b/i, "we think"],
 ];
 
+/**
+ * @param {string} dir
+ * @returns {Generator<string>}
+ */
 function* files(dir) {
+  /** @type {string[]} */
   let names;
   try {
     names = readdirSync(dir);
@@ -62,11 +68,17 @@ function* files(dir) {
   }
 }
 
-/** Blank out comments, keeping line numbers. Strings stay. */
+/**
+ * Blank out comments, keeping line numbers. Strings stay.
+ * @param {string} text
+ * @param {boolean} isCode
+ * @returns {string}
+ */
 function stripComments(text, isCode) {
   if (!isCode) return text;
   let out = "";
   let i = 0;
+  /** @type {string | null} */
   let quote = null;
   while (i < text.length) {
     const c = text[i];
@@ -101,6 +113,7 @@ function stripComments(text, isCode) {
   return out;
 }
 
+/** @type {string[]} */
 const hits = [];
 for (const d of DIRS) {
   const dir = join(ROOT, d);
