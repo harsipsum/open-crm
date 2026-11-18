@@ -9,6 +9,7 @@ import {
   activity,
   member,
   hubspotObject,
+  crmRole,
 } from "@/db/schema";
 
 // The gateway's people are stored in the `user` table, keyed by the gateway's
@@ -112,6 +113,31 @@ export async function ensureUserRecord(userId: string, userEmail: string) {
             eq(member.userId, owner.id),
           ),
         ),
+      // The placeholder's CRM role, team and rotation become theirs, unless
+      // they already have their own row.
+      tx
+        .insert(crmRole)
+        .select(
+          tx
+            .select({
+              organizationId: crmRole.organizationId,
+              userId: sql<string>`${userId}`.as("user_id"),
+              role: crmRole.role,
+              managerId: crmRole.managerId,
+              leftAt: crmRole.leftAt,
+              inRotation: crmRole.inRotation,
+              updatedById: crmRole.updatedById,
+              updatedAt: crmRole.updatedAt,
+            })
+            .from(crmRole)
+            .where(
+              and(
+                eq(crmRole.organizationId, owner.organizationId),
+                eq(crmRole.userId, owner.id),
+              ),
+            ),
+        )
+        .onConflictDoNothing(),
       tx
         .update(hubspotObject)
         .set({ targetId: userId })

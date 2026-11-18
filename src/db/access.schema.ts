@@ -1,4 +1,10 @@
-import { index, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+} from "drizzle-orm/sqlite-core";
 import { organization } from "./auth.schema";
 import { isoNow, timestamp } from "./columns";
 import { CRM_ROLES } from "../shared/crm-roles";
@@ -11,7 +17,8 @@ import { CRM_ROLES } from "../shared/crm-roles";
  * with no row is a seller; the gateway's owners and admins are always admins
  * (src/server/features/access/access.ts). `managerId` puts a seller on a
  * manager's team. `leftAt` marks someone who left: everything they owned
- * falls into the shared pool at once.
+ * falls into the shared pool at once. `inRotation` puts them in the new-lead
+ * round robin whatever their role; unset, only sellers are in it.
  */
 export const crmRole = sqliteTable(
   "crm_role",
@@ -23,6 +30,7 @@ export const crmRole = sqliteTable(
     role: text("role", { enum: CRM_ROLES }).notNull().default("seller"),
     managerId: text("manager_id"),
     leftAt: timestamp("left_at"),
+    inRotation: integer("in_rotation", { mode: "boolean" }),
     updatedById: text("updated_by_id"),
     updatedAt: timestamp("updated_at").notNull().default(isoNow),
   },

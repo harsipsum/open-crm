@@ -74,6 +74,10 @@ interface TeamMember {
   managerId: string | null;
   leftAt: string | null;
   gatewayRole: string;
+  /** Takes new leads in the round robin, whatever their role. */
+  inRotation: boolean;
+  /** Taken out of the round robin on purpose, even as its fallback. */
+  rotationOff: boolean;
 }
 
 /** The organization's members with their CRM role, team and status. */
@@ -85,6 +89,7 @@ export async function loadTeam(organizationId: string): Promise<TeamMember[]> {
       role: crmRole.role,
       managerId: crmRole.managerId,
       leftAt: crmRole.leftAt,
+      inRotation: crmRole.inRotation,
     })
     .from(member)
     .leftJoin(
@@ -95,13 +100,20 @@ export async function loadTeam(organizationId: string): Promise<TeamMember[]> {
       ),
     )
     .where(eq(member.organizationId, organizationId));
-  return rows.map((row) => ({
-    userId: row.userId,
-    gatewayRole: row.gatewayRole,
-    role: isGatewayAdmin(row.gatewayRole) ? "admin" : (row.role ?? "seller"),
-    managerId: row.managerId,
-    leftAt: row.leftAt,
-  }));
+  return rows.map((row) => {
+    const role: CrmRole = isGatewayAdmin(row.gatewayRole)
+      ? "admin"
+      : (row.role ?? "seller");
+    return {
+      userId: row.userId,
+      gatewayRole: row.gatewayRole,
+      role,
+      managerId: row.managerId,
+      leftAt: row.leftAt,
+      inRotation: row.inRotation ?? role === "seller",
+      rotationOff: row.inRotation === false,
+    };
+  });
 }
 
 /** What `userId` (signed in with `gatewayRole`) sees, given the team; FORBIDDEN once they have left. */
