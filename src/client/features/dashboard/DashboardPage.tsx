@@ -16,7 +16,8 @@ import { SkeletonStatGrid } from "@/client/components/SkeletonPresets";
 import { Skeleton } from "@/client/components/ui/skeleton";
 import {
   DealsInProgress,
-  OverdueTasks,
+  DueTasks,
+  RenewalsDue,
   RecentActivity,
 } from "@/client/features/dashboard/DashboardLists";
 import { ListsCard } from "@/client/features/dashboard/ListsCard";
@@ -41,7 +42,7 @@ const SCOPES = [
 
 /**
  * Home: the viewer's (or the team's) sales at a glance, and the lists. While
- * deals are off it's the lists, overdue tasks and recent activity.
+ * deals are off it's the lists, tasks due today and recent activity.
  */
 export function DashboardPage() {
   const search = routeApi.useSearch();
@@ -62,7 +63,7 @@ export function DashboardPage() {
       summary.trend.some((point) => point.won > 0 || point.created > 0));
   const hasActivity =
     summary &&
-    (summary.overdueTasks.length > 0 || summary.recentActivity.length > 0);
+    (summary.dueTasks.length > 0 || summary.recentActivity.length > 0);
 
   if (summary && !summary.multipleOwners && scope === "me") {
     return (
@@ -85,8 +86,8 @@ export function DashboardPage() {
           title="Overview"
           description={
             dealsEnabled
-              ? "Pipeline, lists, overdue tasks and recent activity."
-              : "Lists, overdue tasks and recent activity."
+              ? "Pipeline, follow-ups due today, renewals and recent activity."
+              : "Lists, follow-ups due today and recent activity."
           }
           actions={
             dealsEnabled && summary?.multipleOwners ? (
@@ -156,13 +157,14 @@ export function DashboardPage() {
                   className={cn(
                     "grid gap-6",
                     summary.biggestOpen.length > 0 &&
-                      summary.overdueTasks.length > 0 &&
+                      summary.dueTasks.length > 0 &&
                       "lg:grid-cols-2",
                   )}
                 >
                   <DealsInProgress summary={summary} />
-                  <OverdueTasks summary={summary} />
+                  <DueTasks summary={summary} />
                 </div>
+                <RenewalsDue summary={summary} />
                 <RecentActivity summary={summary} dealsEnabled />
                 <ListsCard />
               </>
@@ -171,11 +173,11 @@ export function DashboardPage() {
                 <div
                   className={cn(
                     "grid gap-6",
-                    summary.overdueTasks.length > 0 && "lg:grid-cols-2",
+                    summary.dueTasks.length > 0 && "lg:grid-cols-2",
                   )}
                 >
                   <ListsCard />
-                  <OverdueTasks summary={summary} />
+                  <DueTasks summary={summary} />
                 </div>
                 <RecentActivity summary={summary} dealsEnabled={false} />
               </>

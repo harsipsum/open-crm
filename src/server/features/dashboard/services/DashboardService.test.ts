@@ -23,6 +23,13 @@ function monthStart(offset: number): string {
   ).toISOString();
 }
 
+/** The instant `days` days from now, a year back when `yearAgo`. */
+const daysFromNow = (days: number, yearAgo = false) => {
+  const at = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  if (yearAgo) at.setUTCFullYear(at.getUTCFullYear() - 1);
+  return at.toISOString();
+};
+
 describe("DashboardService", () => {
   beforeEach(async () => {
     await database.exec(`DELETE FROM organization; DELETE FROM "user";`);
@@ -198,5 +205,87 @@ describe("DashboardService", () => {
       overdueTasks: [],
       recentActivity: [],
     });
+  });
+
+  it("lists won deals renewing in the next 90 days whose renewal isn't open yet, and nothing of another organization", async () => {
+    await database.exec(`
+        INSERT INTO company (id, organization_id, name) VALUES
+          ('globex', 'org_a', 'Globex'),
+          ('initech', 'org_a', 'Initech'),
+          ('umbrella', 'org_b', 'Umbrella');
+      `);
+    const won = (id: string, company: string, closed: string, org = "org_a") =>
+      database.exec(`
+        INSERT INTO deal (id, organization_id, name, company_id, owner_id, stage, amount, currency, created_at, closed_at)
+        VALUES ('${id}', '${org}', '${id}', '${company}', '${org === "org_a" ? "user_a" : "user_b"}',
+          'CLOSED_WON', 500, 'USD', '${closed}', '${closed}')`);
+    await won("soon", "acme", daysFromNow(10, true));
+    await won("later", "globex", daysFromNow(60, true));
+    await won("too-late", "initech", daysFromNow(120, true));
+    await won("past", "initech", daysFromNow(-5, true));
+    await won("theirs", "umbrella", daysFromNow(10, true), "org_b");
+    // Globex's renewal is already in the pipeline.
+    await deal("renewal-open", { created: daysFromNow(-1) });
+    await database.exec(
+      `UPDATE deal SET company_id = 'globex' WHERE id = 'renewal-open'`,
+    );
+
+    const mine = await DashboardService.summary("org_a", "user_a", "me");
+    expect(mine.renewals).toMatchObject({ windowDays: 90, count: 1 });
+    expect(mine.renewals.deals.map((row) => row.id)).toEqual(["soon"]);
+    expect(mine.renewals.deals[0]).toMatchObject({
+      company: { id: "acme", name: "Acme" },
+      ownerName: "Ana",
+      renewsOn: daysFromNow(10).slice(0, 10),
+    });
+
+    // Archiving the open renewal brings Globex's back.
+    await database.exec(
+      `UPDATE deal SET archived_at = '2026-01-01T00:00:00.000Z' WHERE id = 'renewal-open'`,
+    );
+    const again = await DashboardService.summary("org_a", "user_a", "me");
+    expect(again.renewals.deals.map((row) => row.id)).toEqual([
+      "soon",
+      "later",
+    ]);
+
+    const theirs = await DashboardService.summary(
+      "org_b",
+      "user_b",
+      "everyone",
+    );
+    expect(theirs.renewals.deals.map((row) => row.id)).toEqual(["theirs"]);
+    const none = await DashboardService.summary("org_b", "user_a", "me");
+    expect(none.renewals).toMatchObject({ count: 0, deals: [] });
+  });
+
+  it("lists my follow-ups due by the end of my day, overdue first, and keeps overdue apart", async () => {
+    await deal("demo");
+    const dayEnd = daysFromNow(0.5);
+    await database.exec(`
+        INSERT INTO activity (id, organization_id, type, subject, company_id, deal_id, created_by_id, due_at, created_at) VALUES
+          ('late', 'org_a', 'TASK', 'Chase', 'acme', 'demo', 'user_a', '${daysFromNow(-1)}', '2026-10-01T00:00:00.000Z'),
+          ('today', 'org_a', 'TASK', 'Call', 'acme', 'demo', 'user_a', '${daysFromNow(0.25)}', '2026-10-01T00:00:00.000Z'),
+          ('tomorrow', 'org_a', 'TASK', 'Send', 'acme', 'demo', 'user_a', '${daysFromNow(1)}', '2026-10-01T00:00:00.000Z'),
+          ('not-mine', 'org_a', 'TASK', 'Theirs', 'acme', 'demo', 'user_c', '${daysFromNow(0.25)}', '2026-10-01T00:00:00.000Z');
+      `);
+
+    const mine = await DashboardService.summary(
+      "org_a",
+      "user_a",
+      "me",
+      dayEnd,
+    );
+    expect(mine.dueTasks.map((task) => task.id)).toEqual(["late", "today"]);
+    expect(mine.overdueTasks.map((task) => task.id)).toEqual(["late"]);
+
+    // A day end already past falls back to the end of the UTC day.
+    const stale = await DashboardService.summary(
+      "org_a",
+      "user_a",
+      "me",
+      "2000-01-01T00:00:00.000Z",
+    );
+    expect(stale.dueTasks.map((task) => task.id)).toContain("late");
   });
 });

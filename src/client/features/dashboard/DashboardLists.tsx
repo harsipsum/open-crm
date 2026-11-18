@@ -26,9 +26,11 @@ import {
   activityHeadline,
 } from "@/client/features/activities/activityFormat";
 import {
+  formatCount,
   formatMoneyCompact,
   type DashboardSummary,
 } from "@/client/features/dashboard/dashboardFormat";
+import { cn } from "cn";
 import {
   RelativeDay,
   RelativeTime,
@@ -39,7 +41,7 @@ import { EmptyValue, EntityLogo } from "@/client/features/records/cells";
 import { DEAL_STAGE_LABELS } from "@/shared/deal-stages";
 
 // The lists under Home's figures: the deals worth chasing, the viewer's
-// overdue tasks, and what happened last.
+// tasks due today, the renewals coming up, and what happened last.
 
 /** How a deal's value compares with the largest: one hue, a lighter track. */
 function ValueMeter({ share }: { share: number }) {
@@ -130,37 +132,107 @@ export function DealsInProgress({ summary }: { summary: DashboardSummary }) {
   );
 }
 
-export function OverdueTasks({ summary }: { summary: DashboardSummary }) {
-  const tasks = summary.overdueTasks;
+/** The viewer's tasks due by the end of today; the overdue ones in red. */
+export function DueTasks({ summary }: { summary: DashboardSummary }) {
+  const tasks = summary.dueTasks;
   if (tasks.length === 0) return null;
+  const now = new Date().toISOString();
   return (
     <Card className="min-w-0">
       <CardHeader>
-        <CardTitle>Overdue tasks</CardTitle>
+        <CardTitle>Follow-ups due today</CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="divide-y divide-border">
-          {tasks.map((task) => (
-            <li key={task.id} className="flex items-start gap-3 py-2.5 text-sm">
-              <span className="mt-0.5 flex">
-                <TaskCheckbox task={task} />
-              </span>
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="truncate">{task.subject}</span>
-                <span className="flex min-w-0 text-xs text-muted-foreground">
-                  <AboutRecord entry={task} />
+          {tasks.map((task) => {
+            const overdue = task.dueAt !== null && task.dueAt < now;
+            return (
+              <li
+                key={task.id}
+                className="flex items-start gap-3 py-2.5 text-sm"
+              >
+                <span className="mt-0.5 flex">
+                  <TaskCheckbox task={task} />
                 </span>
-              </span>
-              {/* Every one is overdue: the card's title says so. */}
-              {task.dueAt ? (
-                <span className="inline-flex items-center gap-1.5 text-xs whitespace-nowrap text-destructive">
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate">{task.subject}</span>
+                  <span className="flex min-w-0 text-xs text-muted-foreground">
+                    <AboutRecord entry={task} />
+                  </span>
+                </span>
+                {task.dueAt ? (
                   <span
-                    aria-hidden
-                    className="size-1.5 shrink-0 rounded-full bg-destructive"
-                  />
-                  <RelativeDay date={task.dueAt} />
+                    className={cn(
+                      "inline-flex items-center gap-1.5 text-xs whitespace-nowrap",
+                      overdue ? "text-destructive" : "text-primary",
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "size-1.5 shrink-0 rounded-full",
+                        overdue ? "bg-destructive" : "bg-primary",
+                      )}
+                    />
+                    {overdue ? <RelativeDay date={task.dueAt} /> : "Today"}
+                  </span>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Won deals whose anniversary is near and whose renewal is not open yet. */
+export function RenewalsDue({ summary }: { summary: DashboardSummary }) {
+  const { deals, count, windowDays } = summary.renewals;
+  if (count === 0) return null;
+  return (
+    <Card className="min-w-0">
+      <CardHeader>
+        <CardTitle>Renewals due in {windowDays} days</CardTitle>
+        <CardAction className="row-span-1 -my-0.75 text-sm text-muted-foreground tabular-nums">
+          {formatCount(count, "deal")}
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        <ul className="divide-y divide-border">
+          {deals.map((deal) => (
+            <li
+              key={deal.id}
+              className="flex items-center gap-3 py-2.5 text-sm"
+            >
+              <EntityLogo
+                src={deal.company.iconUrl}
+                darkSrc={deal.company.iconDarkUrl}
+                tone={deal.company.iconTone}
+                name={deal.company.name}
+              />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <RecordLink
+                  record={{ kind: "deal", id: deal.id }}
+                  className="font-medium"
+                >
+                  {deal.name}
+                </RecordLink>
+                <span className="truncate text-xs text-muted-foreground">
+                  {deal.company.name}
+                  {deal.ownerName ? `, ${deal.ownerName}` : ""}
                 </span>
-              ) : null}
+              </span>
+              <span className="text-xs whitespace-nowrap text-primary">
+                Renews <RelativeDay date={deal.renewsOn} />
+              </span>
+              <span className="w-16 shrink-0 text-right tabular-nums">
+                {deal.amount === null ? (
+                  <EmptyValue />
+                ) : (
+                  formatMoneyCompact(deal.amount, deal.currency)
+                )}
+              </span>
             </li>
           ))}
         </ul>
