@@ -86,7 +86,7 @@ export function ApiSettings() {
           label="Sign in"
           description={
             account?.gatewayUrl
-              ? "Your Star OS sign-in page opens: sign in, allow the CRM, and choose whether your AI client may change things or only read."
+              ? "Your Star OS sign-in page opens: sign in, allow the CRM, and choose whether your AI client can change things or only read."
               : "This endpoint uses bearer-token authentication. Ask an owner or admin for access."
           }
         />

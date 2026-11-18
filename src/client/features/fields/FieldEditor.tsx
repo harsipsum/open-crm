@@ -180,7 +180,7 @@ export function FieldEditor({
                 ? { type: TYPE_LOCKED }
                 : {
                     label:
-                      "A field with this key already exists. It may be archived.",
+                      "A field with this key already exists. Check the archived fields, or pick another key.",
                   },
             },
           });

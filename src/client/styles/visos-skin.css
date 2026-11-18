@@ -1,105 +1,92 @@
-/* Copied from the Star OS brand pack (skin.css): edit it there, then copy it to every app. */
-/* Star OS skin: Vistar glass (Hamza's pick, 15 Nov 2026: the frosted
-   smart-home dashboard reference, in Vistar's brand colours). A lit backdrop,
-   frosted panels with a thin light edge, generous radii, pill buttons, and one
-   Vistar-blue pill for what's active. Colours are Vistar's (brand.json, read
-   from vistar.me): sky blue #00AEEF, navy #112038 and #1A2B3C, slate
-   #3D4D60, orange #E8441A, cool surfaces #F0F4F8 and #E8EDF4. Text on the
-   blue is navy, not white, so it reads.
+/* Copied from the Star OS brand pack (brand/packs/visos/skin.css): edit it there, then copy it to every app. */
+/* Star OS skin: calm (18 Nov 2026). The same surfaces as the Star OS launcher
+   (gateway brand.css), so moving from the launcher into an app never changes
+   the chrome. It replaces the 15 Nov glass skin: no lit gradient backdrop, no
+   frosted panels, no pill buttons, no solid blue pill for the active page.
+   The EveryApp kit draws the rest as it ships: radius 0.5rem, the active page
+   as a tinted row with a 3px bar, flat cards with a hairline border.
 
-   One file for the launcher and every app. The canonical copy lives in the
-   brand pack (brand/packs/visos/skin.css); each app carries a copy as
-   visos-skin.css. Every app names its dark theme differently, so the dark
-   selector lists them all. `html:root` outranks each app's own token rules
-   (they are at most two classes or attributes), and unlayered rules beat
-   Tailwind's utility layer, so the skin wins without touching app code. */
+   Colours are Vistar's (brand.json): navy #112038 and #1A2B3C for text and
+   primary buttons, sky blue #00AEEF for focus, the active page and charts,
+   orange #E8441A only for destructive actions and the second chart series.
 
-html:root:not(:is([data-theme="visos-dark"])) {
+   One file for every app. Every app names its dark theme differently, so the
+   dark selector lists them all. `html:root` outranks each app's own token
+   rules (they are at most two classes or attributes), so the skin wins without
+   touching app code. Each app's stylesheet still declares the `visos-skin`
+   layer first; it is empty now and costs nothing. */
+
+html:root:not(
+    :is(
+      [data-theme="visos-dark"],
+      [data-theme="dark"],
+      [data-theme="openseo-dark"],
+      .dark
+    )
+  ) {
   color-scheme: light;
-  --radius: 0.875rem;
-  --visos-backdrop:
-    radial-gradient(1100px 680px at 14% -12%, #ffffff 0%, rgb(255 255 255 / 0) 62%),
-    radial-gradient(900px 640px at 105% 110%, #bfe6f8 0%, rgb(191 230 248 / 0) 70%),
-    linear-gradient(160deg, #f4f7fa 0%, #e8edf4 52%, #dbe3ec 100%);
-  --visos-panel: rgb(255 255 255 / 0.55);
-  --visos-edge: rgb(255 255 255 / 0.9);
-  --visos-hairline: rgb(17 32 56 / 0.08);
-  --visos-shadow: 0 1px 0 rgb(255 255 255 / 0.9) inset, 0 18px 40px -18px rgb(17 32 56 / 0.24);
-  --visos-shadow-sm: 0 1px 0 rgb(255 255 255 / 0.8) inset, 0 8px 24px -14px rgb(17 32 56 / 0.2);
-  --visos-pill: #00aeef;
-  --visos-pill-fg: #06213a;
-
-  --background: #eaf0f6;
+  --radius: 0.5rem;
+  --background: #f6f8fb;
   --foreground: #1a2b3c;
-  --card: rgb(255 255 255 / 0.74);
-  /* What a sticky header or column sits on: rows scroll under it, so it can't be see-through. */
-  --visos-card-solid: #f7f9fc;
+  --card: #ffffff;
   --card-foreground: #1a2b3c;
-  --popover: rgb(250 252 254 / 0.97);
+  --popover: #ffffff;
   --popover-foreground: #1a2b3c;
-  --primary: #00aeef;
-  --primary-foreground: #06213a;
-  --secondary: rgb(17 32 56 / 0.05);
+  --primary: #112038;
+  --primary-foreground: #ffffff;
+  --secondary: #edf1f6;
   --secondary-foreground: #1a2b3c;
-  --muted: rgb(17 32 56 / 0.045);
-  --muted-foreground: rgb(26 43 60 / 0.64);
-  --accent: rgb(0 174 239 / 0.1);
-  --accent-foreground: #112038;
-  --destructive: #e8441a;
+  --muted: #edf1f6;
+  --muted-foreground: color-mix(in srgb, #1a2b3c 64%, white);
+  --accent: #edf1f6;
+  --accent-foreground: #1a2b3c;
+  --destructive: #d5401a;
   --success: #129534;
   --success-foreground: #ffffff;
   --warning: #f5c518;
   --warning-foreground: #2b2210;
   --info: #0096d1;
   --info-foreground: #ffffff;
-  --border: rgb(17 32 56 / 0.1);
-  --input: rgb(17 32 56 / 0.16);
+  --border: color-mix(in srgb, #1a2b3c 11%, white);
+  --input: color-mix(in srgb, #1a2b3c 22%, white);
   --ring: #00aeef;
   --chart-1: #00aeef;
   --chart-2: #e8441a;
-  --chart-3: #112038;
+  --chart-3: #129534;
   --chart-4: #f5c518;
   --chart-5: #3d4d60;
-  --sidebar: rgb(255 255 255 / 0.5);
+  --sidebar: color-mix(in srgb, #00aeef 5%, #edf1f6);
   --sidebar-foreground: #1a2b3c;
   --sidebar-primary: #00aeef;
-  --sidebar-primary-foreground: #06213a;
-  --sidebar-accent: rgb(0 174 239 / 0.1);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: color-mix(in srgb, #00aeef 12%, transparent);
   --sidebar-accent-foreground: #112038;
-  --sidebar-border: rgb(17 32 56 / 0.08);
+  --sidebar-border: color-mix(in srgb, #1a2b3c 12%, white);
   --sidebar-ring: #00aeef;
 }
 
-html:root:is([data-theme="visos-dark"]) {
+html:root:is(
+    [data-theme="visos-dark"],
+    [data-theme="dark"],
+    [data-theme="openseo-dark"],
+    .dark
+  ) {
   color-scheme: dark;
-  --radius: 0.875rem;
-  --visos-backdrop:
-    radial-gradient(1100px 680px at 14% -12%, #2b5f8c 0%, rgb(43 95 140 / 0) 60%),
-    radial-gradient(900px 640px at 105% 110%, #050c17 0%, rgb(5 12 23 / 0) 70%),
-    linear-gradient(160deg, #1c3654 0%, #112038 48%, #0a1525 100%);
-  --visos-panel: rgb(255 255 255 / 0.05);
-  --visos-edge: rgb(190 228 255 / 0.14);
-  --visos-hairline: rgb(190 228 255 / 0.09);
-  --visos-shadow: 0 1px 0 rgb(255 255 255 / 0.07) inset, 0 24px 48px -20px rgb(0 6 16 / 0.6);
-  --visos-shadow-sm: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 10px 28px -16px rgb(0 6 16 / 0.55);
-  --visos-pill: #00aeef;
-  --visos-pill-fg: #06213a;
-
-  --background: #0f1d31;
-  --foreground: #f1f6fb;
-  --card: rgb(26 43 60 / 0.62);
-  --visos-card-solid: #19293f;
-  --card-foreground: #f1f6fb;
-  --popover: rgb(17 32 56 / 0.97);
-  --popover-foreground: #f1f6fb;
+  --radius: 0.5rem;
+  --background: #0b1626;
+  --foreground: #eef3f8;
+  --card: #112038;
+  --card-foreground: #eef3f8;
+  --popover: #13243d;
+  --popover-foreground: #eef3f8;
   --primary: #00aeef;
   --primary-foreground: #06213a;
-  --secondary: rgb(255 255 255 / 0.08);
-  --secondary-foreground: #f1f6fb;
-  --muted: rgb(255 255 255 / 0.06);
-  --muted-foreground: rgb(225 236 246 / 0.64);
-  --accent: rgb(0 174 239 / 0.14);
-  --accent-foreground: #f1f6fb;
+  --secondary: #1a2b3c;
+  --secondary-foreground: #eef3f8;
+  --muted: #1a2b3c;
+  --muted-foreground: color-mix(in srgb, #eef3f8 64%, #112038);
+  --accent: #1a2b3c;
+  --accent-foreground: #eef3f8;
   --destructive: #ff6b45;
   --success: #3fd178;
   --success-foreground: #06210f;
@@ -107,226 +94,51 @@ html:root:is([data-theme="visos-dark"]) {
   --warning-foreground: #2b2210;
   --info: #33c1f5;
   --info-foreground: #06213a;
-  --border: rgb(190 228 255 / 0.12);
-  --input: rgb(190 228 255 / 0.18);
-  --ring: #33c1f5;
+  --border: color-mix(in srgb, #00aeef 14%, #112038);
+  --input: color-mix(in srgb, #00aeef 22%, #112038);
+  --ring: #00aeef;
   --chart-1: #00aeef;
   --chart-2: #e8441a;
-  --chart-3: #33c1f5;
+  --chart-3: #3fd178;
   --chart-4: #f5c518;
   --chart-5: #8fa3b8;
-  --sidebar: rgb(255 255 255 / 0.045);
-  --sidebar-foreground: #f1f6fb;
+  --sidebar: #0e1b2e;
+  --sidebar-foreground: #eef3f8;
   --sidebar-primary: #00aeef;
   --sidebar-primary-foreground: #06213a;
-  --sidebar-accent: rgb(0 174 239 / 0.12);
-  --sidebar-accent-foreground: #f1f6fb;
-  --sidebar-border: rgb(190 228 255 / 0.1);
-  --sidebar-ring: #33c1f5;
+  --sidebar-accent: color-mix(in srgb, #00aeef 14%, transparent);
+  --sidebar-accent-foreground: #eef3f8;
+  --sidebar-border: color-mix(in srgb, #00aeef 12%, #112038);
+  --sidebar-ring: #00aeef;
 }
-/* The lit backdrop behind everything. Not ixed: the shell never scrolls the
-   page itself, and a fixed background repaints on every scroll. */
+
 html:root body {
-  background: var(--visos-backdrop);
   background-color: var(--background);
+  -webkit-font-smoothing: antialiased;
 }
 
-html:root [data-slot="sidebar-wrapper"] {
-  background: var(--visos-backdrop) !important;
+/* Cards sit on the page with a hairline and the launcher's soft shadow. */
+html:root:not(
+    :is(
+      [data-theme="visos-dark"],
+      [data-theme="dark"],
+      [data-theme="openseo-dark"],
+      .dark
+    )
+  )
+  :is([data-slot="card"], [data-slot="table-card"]) {
+  box-shadow:
+    0 1px 2px rgb(17 32 56 / 0.04),
+    0 8px 24px -16px rgb(17 32 56 / 0.12);
 }
 
-/* The sidebar and the page are two floating frosted panels. They sit on a
-   smooth gradient, where a backdrop blur shows nothing a translucent fill
-   doesn't, and blur nested in blur stalls the renderer (seen 15 Nov): only
-   surfaces that float over content blur what's behind them. */
-html:root [data-slot="sidebar-inner"] {
-  background: var(--visos-panel) !important;
+::selection {
+  background: color-mix(in srgb, #00aeef 22%, transparent);
 }
 
-/* The apps' shells pin the frame with important utilities (md:!m-0,
-   md:!rounded-none). An important declaration in an earlier layer beats one
-   in a later layer, so these sit in `visos-skin`, which each app's stylesheet
-   declares before Tailwind's layers. */
-@layer visos-skin {
-  @media (min-width: 768px) {
-    html:root [data-slot="sidebar-container"] {
-      padding: 12px 6px 12px 12px !important;
-    }
-    html:root [data-slot="sidebar-inner"] {
-      border: 1px solid var(--visos-edge) !important;
-      border-radius: 24px !important;
-      box-shadow: var(--visos-shadow) !important;
-    }
-    html:root [data-slot="sidebar-inset"] {
-      margin: 12px 12px 12px 6px !important;
-      border: 1px solid var(--visos-edge) !important;
-      border-radius: 24px !important;
-      background: var(--visos-panel) !important;
-      box-shadow: var(--visos-shadow) !important;
-      overflow: hidden !important;
-    }
-  }
-}
-
-/* Navigation: rounded rows; what's active is one solid pill. */
-html:root [data-slot="sidebar-menu-button"],
-html:root [data-slot="sidebar-menu-sub-button"] {
-  border-radius: 14px;
-}
-html:root [data-slot="sidebar-menu-button"]:is([data-active], [aria-current="page"]),
-html:root [data-slot="sidebar-menu-sub-button"][data-active] {
-  background: var(--visos-pill) !important;
-  color: var(--visos-pill-fg) !important;
-  font-weight: 600;
-  box-shadow: 0 8px 22px -10px rgb(0 0 0 / 0.35);
-}
-html:root [data-slot="sidebar-menu-button"]:is([data-active], [aria-current="page"])::before {
-  display: none;
-}
-html:root [data-slot="sidebar-menu-button"]:is([data-active], [aria-current="page"]) ~ [data-slot="sidebar-menu-badge"] {
-  color: var(--visos-pill-fg) !important;
-}
-
-/* Cards and tables: frosted, with a thin light edge. */
-html:root [data-slot="card"],
-html:root [data-slot="table-card"] {
-  background-color: var(--card);
-  border-color: var(--visos-edge);
-  border-radius: 20px;
-  box-shadow: var(--visos-shadow-sm);
-}
-
-/* A sticky header or column on a card: rows scroll under it, so it is solid. */
-html:root :is(.sticky, [class*="sticky "]):is(.bg-card, [class*="bg-card"]) {
-  background-color: var(--visos-card-solid) !important;
-}
-
-/* Floating surfaces: menus, popovers, dialogs and sheets. */
-html:root :is([data-slot="dropdown-menu-content"], [data-slot="popover-content"], [data-slot="select-content"], [data-slot="combobox-content"], [data-slot="tooltip-content"]) {
-  -webkit-backdrop-filter: blur(20px) saturate(1.15);
-  backdrop-filter: blur(20px) saturate(1.15);
-  border-color: var(--visos-edge);
-  border-radius: 16px;
-}
-html:root :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) {
-  border: 1px solid var(--visos-edge);
-  border-radius: 24px;
-  -webkit-backdrop-filter: blur(24px) saturate(1.15);
-  backdrop-filter: blur(24px) saturate(1.15);
-  box-shadow: var(--visos-shadow);
-}
-html:root [data-slot="sheet-content"] {
-  -webkit-backdrop-filter: blur(24px) saturate(1.15);
-  backdrop-filter: blur(24px) saturate(1.15);
-}
-
-
-/* Controls: pill buttons, softly rounded tabs and fields. */
-html:root [data-slot="button"] {
-  border-radius: 9999px;
-}
-html:root :is([data-slot="tabs-list"], [data-slot="tabs-trigger"], [data-slot="toggle-group"], [data-slot="toggle-group-item"]) {
-  border-radius: 10px;
-}
-html:root :is([data-slot="input"], [data-slot="select-trigger"], [data-slot="input-group"]) {
-  border-radius: 12px;
-}
-html:root [data-slot="textarea"] {
-  border-radius: 14px;
-}
-
-/* Motion, after the reference: things rise into place, cards lift under the
-   pointer, the active pill settles in. Only transform and opacity move (the
-   compositor runs them without layout or paint), nothing loops, and none of it
-   runs for someone who asked their system for less motion. */
-@keyframes visos-rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.985);
-  }
-}
-@keyframes visos-settle {
-  from {
-    opacity: 0.6;
-    transform: scale(0.94);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  html:root [data-slot="sidebar-inset"] :is([data-slot="card"], [data-slot="table-card"]) {
-    animation: visos-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-  html:root [data-slot="sidebar-inset"] :is([data-slot="card"], [data-slot="table-card"]):nth-child(2) {
-    animation-delay: 45ms;
-  }
-  html:root [data-slot="sidebar-inset"] :is([data-slot="card"], [data-slot="table-card"]):nth-child(3) {
-    animation-delay: 90ms;
-  }
-  html:root [data-slot="sidebar-inset"] :is([data-slot="card"], [data-slot="table-card"]):nth-child(4) {
-    animation-delay: 135ms;
-  }
-  html:root [data-slot="sidebar-inset"] :is([data-slot="card"], [data-slot="table-card"]):nth-child(5) {
-    animation-delay: 180ms;
-  }
-  html:root [data-slot="sidebar-inset"] :is([data-slot="card"], [data-slot="table-card"]):nth-child(n + 6) {
-    animation-delay: 220ms;
-  }
-  html:root li:nth-child(n) > [data-slot="card"] {
-    animation-delay: calc(min(var(--visos-i, 0), 8) * 40ms);
-  }
-  html:root li:nth-child(2) > [data-slot="card"] { --visos-i: 1; }
-  html:root li:nth-child(3) > [data-slot="card"] { --visos-i: 2; }
-  html:root li:nth-child(4) > [data-slot="card"] { --visos-i: 3; }
-  html:root li:nth-child(5) > [data-slot="card"] { --visos-i: 4; }
-  html:root li:nth-child(6) > [data-slot="card"] { --visos-i: 5; }
-  html:root li:nth-child(7) > [data-slot="card"] { --visos-i: 6; }
-  html:root li:nth-child(n + 8) > [data-slot="card"] { --visos-i: 7; }
-
-  /* A card that opens something lifts, and its icon leans in. */
-  html:root [data-slot="card"]:has(> a, > button) {
-    transition:
-      transform 380ms cubic-bezier(0.16, 1, 0.3, 1),
-      box-shadow 380ms cubic-bezier(0.16, 1, 0.3, 1),
-      border-color 240ms ease;
-  }
-  html:root [data-slot="card"]:has(> a, > button):hover {
-    transform: translateY(-3px);
-    box-shadow: var(--visos-shadow);
-  }
-  html:root [data-slot="card"]:has(> a, > button) img {
-    transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  html:root [data-slot="card"]:has(> a, > button):hover img {
-    transform: scale(1.06);
-  }
-
-  /* Buttons give under the press; rows and tabs ease between states. */
-  html:root [data-slot="button"] {
-    transition:
-      background-color 180ms ease,
-      color 180ms ease,
-      border-color 180ms ease,
-      box-shadow 180ms ease,
-      transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  html:root [data-slot="button"]:active:not(:disabled) {
-    transform: scale(0.97);
-  }
-  html:root :is([data-slot="sidebar-menu-button"], [data-slot="tabs-trigger"], [data-slot="toggle-group-item"]) {
-    transition:
-      background-color 240ms ease,
-      color 240ms ease,
-      box-shadow 240ms ease;
-  }
-  html:root [data-slot="sidebar-menu-button"]:is([data-active], [aria-current="page"]) {
-    animation: visos-settle 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-}
-
-/* Arriving from the Star OS launcher: the app's content fades in over the same
-   lit backdrop, so moving between subdomains reads as one product. Opacity only,
-   on body (its background paints the canvas, so the backdrop stays put), with a
-   backwards fill so nothing stays applied once it lands. */
+/* Arriving from the Star OS launcher: the app fades in, so moving between
+   subdomains reads as one product. Opacity only, with a backwards fill so
+   nothing stays applied once it lands, and none of it under reduced motion. */
 @keyframes staros-arrive {
   from {
     opacity: 0;

@@ -297,7 +297,7 @@ export function ConnectedMailbox({
               quiet ? (
                 lastSyncedAt ? (
                   <>
-                    Last checked <RelativeTime date={lastSyncedAt} />
+                    Synced <RelativeTime date={lastSyncedAt} />
                   </>
                 ) : (
                   "Not checked yet"

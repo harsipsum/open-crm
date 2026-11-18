@@ -223,7 +223,7 @@ export const activityTools = {
 
   log_activity: crmTool({
     description:
-      "Log a note, call, email, meeting or task on a company, contact and/or deal (at least one). What's logged on a contact or deal is filed under their company too. A task needs a subject and may have a due date; anything else needs a subject or a body.",
+      "Log a note, call, email, meeting or task on a company, contact and/or deal (at least one). What's logged on a contact or deal is filed under their company too. A task needs a subject and can have a due date; anything else needs a subject or a body.",
     risk: "write",
     input: z
       .object({
