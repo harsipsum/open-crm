@@ -64,7 +64,7 @@ export function dealTool<Input extends z.ZodObject, Output extends z.ZodObject>(
   });
 }
 
-const STAGES_NOTE = `Stages in pipeline order: ${OPEN_DEAL_STAGES.join(", ")} are open; CLOSED_WON, CLOSED_LOST and UNQUALIFIED_TO_BUY are outcomes.`;
+const STAGES_NOTE = `Stages in pipeline order: ${OPEN_DEAL_STAGES.join(", ")} are open (ON_HOLD is a paused deal; UNMAPPED is a named pipeline stage with no built-in equivalent, so read pipelineStage for it); CLOSED_WON, CLOSED_LOST and UNQUALIFIED_TO_BUY are outcomes.`;
 
 /** A close date as written: its day. */
 function day(value: string | null) {

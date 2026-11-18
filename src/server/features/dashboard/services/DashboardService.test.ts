@@ -90,10 +90,18 @@ describe("DashboardService", () => {
       closingThisMonth: { count: 1, value: 2500.5 },
     });
     expect(mine.pipeline.stages).toEqual([
+      { stage: "LEAD", count: 0, value: 0 },
       { stage: "DEMO_BOOKED", count: 3, value: 1000 },
+      { stage: "MQL", count: 0, value: 0 },
       { stage: "QUALIFIED_TO_BUY", count: 0, value: 0 },
+      { stage: "TECHNICAL_EVALUATION", count: 0, value: 0 },
+      { stage: "PROPOSAL", count: 0, value: 0 },
       { stage: "DECISION_MAKER_BOUGHT_IN", count: 0, value: 0 },
+      { stage: "BEST_CASE", count: 0, value: 0 },
+      { stage: "COMMIT", count: 0, value: 0 },
       { stage: "CONTRACT_SENT", count: 1, value: 2500.5 },
+      { stage: "ON_HOLD", count: 0, value: 0 },
+      { stage: "UNMAPPED", count: 0, value: 0 },
     ]);
     // A stale figure never takes a place among the biggest deals.
     expect(

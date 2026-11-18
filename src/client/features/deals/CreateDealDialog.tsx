@@ -30,7 +30,7 @@ import {
   DEFAULT_REPORTING_CURRENCY,
   type CurrencyCode,
 } from "@/shared/currency";
-import { DEAL_STAGE_LABELS, OPEN_DEAL_STAGES } from "@/shared/deal-stages";
+import { BUYING_DEAL_STAGES, DEAL_STAGE_LABELS } from "@/shared/deal-stages";
 import { DEAL_NAME_MAX, type CreateDealInput } from "@/types/schemas/deals";
 import { UNASSIGNED } from "@/types/schemas/records";
 
@@ -55,10 +55,12 @@ const formSchema = z.object({
 
 type FormValues = z.input<typeof formSchema>;
 
-const STAGE_ITEMS = OPEN_DEAL_STAGES.map((stage) => ({
-  value: stage,
-  label: DEAL_STAGE_LABELS[stage],
-}));
+const STAGE_ITEMS = [...BUYING_DEAL_STAGES, "ON_HOLD" as const].map(
+  (stage) => ({
+    value: stage,
+    label: DEAL_STAGE_LABELS[stage],
+  }),
+);
 
 const CURRENCY_ITEMS = CURRENCY_CODES.map((code) => ({
   value: code,

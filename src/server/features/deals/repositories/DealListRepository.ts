@@ -34,6 +34,7 @@ import {
   sortOrder,
   type SortSpec,
 } from "@/server/features/records/listQuery";
+import { DEAL_STAGES, type DealStage } from "@/shared/crm-enums";
 import { roundMoney } from "@/shared/currency";
 import {
   CLOSED_DEAL_STAGES,
@@ -52,9 +53,22 @@ import type { FacetCounts } from "@/types/schemas/records";
 // deals in its view are worth. The filters name only the deal's own columns,
 // so a total over the view needs no join.
 
+/**
+ * `deal.stage in (...)` with the stages written into the statement: they are
+ * the CRM's own enum values, checked here, so a filter naming every stage
+ * leaves D1's 100 bound parameters to the values people type.
+ */
+function stageIn(stages: readonly string[]): SQL {
+  const known = stages.filter((stage): stage is DealStage =>
+    (DEAL_STAGES as readonly string[]).includes(stage),
+  );
+  if (known.length === 0) return sql`0`;
+  return sql`${deal.stage} in (${sql.raw(known.map((stage) => `'${stage}'`).join(", "))})`;
+}
+
 const stageRank = sql`case ${deal.stage} ${sql.join(
-  DEAL_STAGE_ORDER.map(
-    (stage, rank) => sql`when ${stage} then ${sql.raw(String(rank))}`,
+  DEAL_STAGE_ORDER.map((stage, rank) =>
+    sql.raw(`when '${stage}' then ${rank}`),
   ),
   sql` `,
 )} end`;
@@ -107,7 +121,7 @@ function closingCondition(window: ClosingWindow, now: Date): SQL | undefined {
       const today = new Date(
         Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
       ).toISOString();
-      return and(lt(closes, today), inArray(deal.stage, OPEN_DEAL_STAGES));
+      return and(lt(closes, today), stageIn(OPEN_DEAL_STAGES));
     }
     case "this-month":
       return and(
@@ -168,8 +182,8 @@ function listWhere(
   return and(
     scopeWhere(organizationId, input),
     ownerCondition(deal.ownerId, input.owner),
-    statusStages ? inArray(deal.stage, statusStages) : undefined,
-    input.stage.length > 0 ? inArray(deal.stage, input.stage) : undefined,
+    statusStages ? stageIn(statusStages) : undefined,
+    input.stage.length > 0 ? stageIn(input.stage) : undefined,
     input.closing.length > 0
       ? or(...input.closing.map((window) => closingCondition(window, now)))
       : undefined,
@@ -185,7 +199,7 @@ function openInView(
 ) {
   return and(
     listWhere(organizationId, input, fieldConditions),
-    inArray(deal.stage, OPEN_DEAL_STAGES),
+    stageIn(OPEN_DEAL_STAGES),
   );
 }
 

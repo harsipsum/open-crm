@@ -173,7 +173,7 @@ async function writeObjects(org: string, input: HubspotBatch) {
       );
       const stage = sql<
         (typeof deal.$inferInsert)["stage"]
-      >`coalesce((select json_extract(data, '$.builtInStage') from hubspot_object where organization_id = ${org} and portal_id = ${portal} and object_type = 'stages' and source_id = ${`${p.pipeline}:${p.dealstage}`}), 'DEMO_BOOKED')`;
+      >`coalesce((select json_extract(data, '$.builtInStage') from hubspot_object where organization_id = ${org} and portal_id = ${portal} and object_type = 'stages' and source_id = ${`${p.pipeline}:${p.dealstage}`}), 'UNMAPPED')`;
       const n = Number(p.amount);
       const amount = p.amount && Number.isFinite(n) ? n : null;
       const currency = text(p.deal_currency_code) ?? "USD";

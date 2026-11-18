@@ -9,6 +9,14 @@ export const DEAL_STAGES = [
   "CONTRACT_SENT",
   "CLOSED_WON",
   "CLOSED_LOST",
+  "LEAD",
+  "MQL",
+  "TECHNICAL_EVALUATION",
+  "PROPOSAL",
+  "BEST_CASE",
+  "COMMIT",
+  "ON_HOLD",
+  "UNMAPPED",
 ] as const;
 export type DealStage = (typeof DEAL_STAGES)[number];
 

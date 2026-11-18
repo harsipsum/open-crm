@@ -22,7 +22,7 @@ import type { DealStage } from "@/shared/crm-enums";
 import {
   DEAL_STAGE_LABELS,
   DEAL_STAGE_ORDER,
-  OPEN_DEAL_STAGES,
+  BUYING_DEAL_STAGES,
   isClosedStage,
   isLosingStage,
 } from "@/shared/deal-stages";
@@ -203,8 +203,8 @@ export function DealStageMenu({
   );
 }
 
-// The open stages, then a win: the road a deal is meant to take.
-const RAIL: DealStage[] = [...OPEN_DEAL_STAGES, "CLOSED_WON"];
+// The buying stages, then a win: the road a deal is meant to take.
+const RAIL: DealStage[] = [...BUYING_DEAL_STAGES, "CLOSED_WON"];
 
 /**
  * The pipeline as steps: click one to move the deal there. A deal lost or
@@ -221,7 +221,7 @@ export function StageStepper({
     if (changed) toast.success("Stage updated.");
   });
   const exited = isClosedStage(stage) && stage !== "CLOSED_WON";
-  const steps = exited ? OPEN_DEAL_STAGES : RAIL;
+  const steps: DealStage[] = exited ? [...BUYING_DEAL_STAGES] : RAIL;
   const currentIndex = steps.indexOf(stage);
 
   return (

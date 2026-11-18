@@ -224,6 +224,7 @@ async function updateDeal(organizationId: string, input: UpdateDealInput) {
  * Moves the deal to `stage`, for `movedById`. A deal already there is left
  * alone (`changed: false`); a lost or unqualified deal needs a reason.
  */
+const NO_NAMED_STAGE = "This deal's pipeline has no stage for that.";
 async function setStage(
   organizationId: string,
   input: SetDealStageInput,
@@ -251,6 +252,8 @@ async function setStage(
     // Someone moved it first: fine if they moved it here too.
     const now = await requireDeal(organizationId, id);
     if (now.stage === stage) return { id, stage, changed: false };
+    if (now.stage === found.stage && found.pipelineId)
+      throw new UserFacingError("VALIDATION_ERROR", NO_NAMED_STAGE);
     throw new UserFacingError(
       "CONFLICT",
       "Someone moved this deal to another stage meanwhile.",

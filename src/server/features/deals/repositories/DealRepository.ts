@@ -29,7 +29,7 @@ import type { DealStage } from "@/shared/crm-enums";
 import {
   isClosedStage,
   isLosingStage,
-  OPEN_DEAL_STAGES,
+  openStageNamesOf,
 } from "@/shared/deal-stages";
 
 // Deals: the pipeline's rows. A deal belongs to one company of its
@@ -89,18 +89,27 @@ function inOrganization(organizationId: string, id: string) {
 
 /**
  * The stage of the deal's own pipeline a move to `to` lands on: its first
- * won or lost stage, or the open one at the built-in stage's place. Null
+ * won or lost stage, or its first open stage whose name maps to `to`. Null
  * for a deal in no pipeline, or a pipeline without such a stage.
  */
 function pipelineStageFor(to: DealStage) {
   const kind =
     to === "CLOSED_WON" ? "DONE" : isLosingStage(to) ? "DROPPED" : "OPEN";
-  const place = kind === "OPEN" ? Math.max(OPEN_DEAL_STAGES.indexOf(to), 0) : 0;
   // Spelled out: inside an UPDATE of deal, a bare pipeline_id would bind to
   // pipeline_stage's own column.
+  if (kind !== "OPEN") {
+    return sql<
+      string | null
+    >`(select "ps"."id" from "pipeline_stage" "ps" where "ps"."pipeline_id" = "deal"."pipeline_id" and "ps"."kind" = ${kind} order by "ps"."position" limit 1)`;
+  }
+  const names = openStageNamesOf(to);
+  if (names.length === 0) return sql<string | null>`null`;
   return sql<
     string | null
-  >`(select "ps"."id" from "pipeline_stage" "ps" where "ps"."pipeline_id" = "deal"."pipeline_id" and "ps"."kind" = ${kind} order by "ps"."position" limit 1 offset ${place})`;
+  >`(select "ps"."id" from "pipeline_stage" "ps" where "ps"."pipeline_id" = "deal"."pipeline_id" and "ps"."kind" = 'OPEN' and lower(trim("ps"."name")) in (${sql.join(
+    names.map((name) => sql`${name}`),
+    sql`, `,
+  )}) order by "ps"."position" limit 1)`;
 }
 
 /** One deal of the organization, with its company and owner. */
@@ -225,6 +234,13 @@ async function moveStage(
           and(
             inOrganization(organizationId, move.id),
             eq(deal.stage, move.from),
+            // A deal in a named pipeline moves only onto a stage of it:
+            // with none that maps to `to`, the move is refused rather than
+            // leaving the deal at no named stage.
+            or(
+              isNull(deal.pipelineId),
+              sql`${pipelineStageFor(move.to)} is not null`,
+            ),
           ),
         ),
       tx.insert(activity).values({
