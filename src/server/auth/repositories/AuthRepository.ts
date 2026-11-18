@@ -83,6 +83,7 @@ async function listMembers(organizationId: string) {
       userId: user.id,
       name: user.name,
       email: user.email,
+      emailVerified: user.emailVerified,
       image: user.image,
       role: member.role,
       joinedAt: member.createdAt,

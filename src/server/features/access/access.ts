@@ -104,7 +104,7 @@ export async function loadTeam(organizationId: string): Promise<TeamMember[]> {
   }));
 }
 
-/** What `userId` (signed in with `gatewayRole`) sees, given the team. */
+/** What `userId` (signed in with `gatewayRole`) sees, given the team; FORBIDDEN once they have left. */
 function accessFor(
   organizationId: string,
   userId: string,
@@ -112,6 +112,8 @@ function accessFor(
   team: TeamMember[],
 ): Access {
   const me = team.find((row) => row.userId === userId);
+  // A member marked as left keeps no access, whatever their gateway seat.
+  if (me?.leftAt) throw new AppError("FORBIDDEN");
   const role: CrmRole = isGatewayAdmin(gatewayRole)
     ? "admin"
     : (me?.role ?? "seller");

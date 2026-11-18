@@ -1,3 +1,4 @@
+import { currentAccess } from "@/server/features/access/access";
 import { ConversionService } from "@/server/features/currency/services/ConversionService";
 import { DealRepository } from "@/server/features/deals/repositories/DealRepository";
 import {
@@ -78,6 +79,16 @@ const PIPELINE_NAME_MAX = 120;
  * Resolves a row's pipeline and stage by name, adding what's missing, once
  * per name in a chunk.
  */
+/** Only pipeline managers (admins, an app key, the cron) add a pipeline or a stage. */
+function mayAddPipelines() {
+  const access = currentAccess();
+  if (access && !access.seeAll) {
+    throw new RowError(
+      "Only an admin adds a pipeline or a stage. Ask one to add it, then import again.",
+    );
+  }
+}
+
 function pipelineResolver(organizationId: string) {
   const pipelines = new Map<string, Promise<string>>();
   const stages = new Map<string, Promise<PipelineStageRef>>();
@@ -88,6 +99,7 @@ function pipelineResolver(organizationId: string) {
       pipelineId = PipelineRepository.ensurePipeline(
         organizationId,
         pipelineName,
+        mayAddPipelines,
       );
       pipelines.set(pipelineKey, pipelineId);
     }
@@ -100,6 +112,7 @@ function pipelineResolver(organizationId: string) {
           id,
           stageName,
           stageKindOf(stageName),
+          mayAddPipelines,
         ),
       );
       stages.set(stageKey, ref);
@@ -214,15 +227,16 @@ export async function importDeals(
     const found = row.value;
     results.push(
       await saveRow(row.line, async () => {
+        const companyId = await companyOf(found.company);
+        const key = `${companyId ?? `new:${JSON.stringify(found.company)}`}|${found.name.toLowerCase()}`;
+        // A skipped row adds nothing, not even its pipeline or stage.
+        if (existing.has(key) && run.duplicates === "skip") return "skipped";
         const placed =
           found.pipeline && !run.dryRun
             ? await pipelineOf(found.pipeline.name, found.pipeline.stage)
             : null;
         const builtIn = placed?.stage ?? found.stage;
-        const companyId = await companyOf(found.company);
-        const key = `${companyId ?? `new:${JSON.stringify(found.company)}`}|${found.name.toLowerCase()}`;
         if (existing.has(key)) {
-          if (run.duplicates === "skip") return "skipped";
           const id = existing.get(key);
           if (run.dryRun || !id) return "updated";
           await DealService.updateDeal(run.organizationId, {

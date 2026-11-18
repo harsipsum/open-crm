@@ -66,7 +66,9 @@ export async function createSqliteTestDb() {
   const db = libsql as unknown as TestDatabase;
   /** Runs the production statements in order, as D1's batch does. */
   const batch: typeof runBatch = async (build) => {
-    for (const statement of build(db)) await statement;
+    const results: unknown[] = [];
+    for (const statement of build(db)) results.push(await statement);
+    return results;
   };
   return {
     db,

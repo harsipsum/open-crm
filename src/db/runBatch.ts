@@ -9,18 +9,19 @@ type BatchStatement = Parameters<typeof db.batch>[0][number];
 const DB_BATCH_SIZE = 100;
 
 /**
- * Run a set of write statements atomically, in order, as one D1 batch.
+ * Run a set of write statements atomically, in order, as one D1 batch, and
+ * return each statement's result in the same order.
  * Returning the (unawaited) Drizzle query builders the `tx` handle builds is
  * enough.
  */
 export async function runBatch(
   build: (tx: BatchExecutor) => readonly Promise<unknown>[],
-): Promise<void> {
+): Promise<unknown[]> {
   const statements = build(db);
-  if (statements.length === 0) return;
+  if (statements.length === 0) return [];
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- d1 query builders are BatchItems; length checked above
   const batch = statements as unknown as [BatchStatement, ...BatchStatement[]];
-  await db.batch(batch);
+  return db.batch(batch);
 }
 
 /**
