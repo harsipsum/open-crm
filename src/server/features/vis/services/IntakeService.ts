@@ -12,7 +12,7 @@ import { VisRepository } from "@/server/features/vis/repositories/VisRepository"
 import { LeadMatchService } from "@/server/features/vis/services/LeadMatchService";
 import { SdrService } from "@/server/features/vis/services/SdrService";
 import { AppError } from "@/server/lib/errors";
-import { OPEN_DEAL_STAGES } from "@/shared/deal-stages";
+import { builtInStageOf } from "@/shared/deal-stages";
 import { normalizeDomain } from "@/shared/domain";
 import {
   INBOUND_SOURCES,
@@ -374,16 +374,7 @@ async function moveToStage(
       `${pipeline.name} has no stage "${input.stage}". Stages: ${pipeline.stages.map((stage) => stage.name).join(", ")}.`,
     );
   }
-  const openPlace = pipeline.stages
-    .slice(0, index)
-    .filter((stage) => stage.kind === "OPEN").length;
-  const builtIn =
-    target.kind === "DONE"
-      ? "CLOSED_WON"
-      : target.kind === "DROPPED"
-        ? "CLOSED_LOST"
-        : (OPEN_DEAL_STAGES[Math.min(openPlace, OPEN_DEAL_STAGES.length - 1)] ??
-          "DEMO_BOOKED");
+  const builtIn = builtInStageOf(target.name, target.kind);
   await DealService.setStage(
     organizationId,
     { id: input.dealId, stage: builtIn, closedReason: input.reason },

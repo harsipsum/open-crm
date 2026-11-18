@@ -79,21 +79,21 @@ describe("ImportService pipelines", () => {
       },
       {
         name: "Demo",
-        stage: "QUALIFIED_TO_BUY",
+        stage: "UNMAPPED",
         pipeline: "Sales Pipeline",
         at: "Technical Demo/POC",
         kind: "OPEN",
       },
       {
         name: "Due",
-        stage: "DEMO_BOOKED",
+        stage: "UNMAPPED",
         pipeline: "Renewals",
         at: "Renewal Due",
         kind: "OPEN",
       },
       {
         name: "Lead",
-        stage: "DEMO_BOOKED",
+        stage: "LEAD",
         pipeline: "Sales Pipeline",
         at: "Lead Generated",
         kind: "OPEN",
@@ -209,10 +209,10 @@ describe("ImportService pipelines", () => {
         "SELECT name, stage FROM deal WHERE organization_id = 'org_a' ORDER BY name",
       ),
     ).toEqual([
-      { name: "Best", stage: "DECISION_MAKER_BOUGHT_IN" },
-      { name: "Commit", stage: "CONTRACT_SENT" },
-      { name: "Demo", stage: "QUALIFIED_TO_BUY" },
-      { name: "Lead", stage: "DEMO_BOOKED" },
+      { name: "Best", stage: "BEST_CASE" },
+      { name: "Commit", stage: "COMMIT" },
+      { name: "Demo", stage: "UNMAPPED" },
+      { name: "Lead", stage: "LEAD" },
       { name: "Lost", stage: "CLOSED_LOST" },
       { name: "Won", stage: "CLOSED_WON" },
     ]);
@@ -241,6 +241,47 @@ describe("ImportService pipelines", () => {
         (stage) => stage.name,
       ),
     ).toEqual(["Lead Generated", "Closed Won"]);
+  });
+
+  it("moves a pipeline deal only onto a named stage of its own pipeline", async () => {
+    await ImportService.importChunk(
+      A,
+      chunk([
+        deal("Demo", "Sales Pipeline", "Initial Meeting / Demo"),
+        deal("Early", "Sales Pipeline", "MQL"),
+      ]),
+    );
+    const [demo] = await database.rows(
+      "SELECT id FROM deal WHERE name = 'Demo'",
+    );
+    const id = demo?.id;
+    if (typeof id !== "string") throw new Error("Imported deal missing");
+    const at = async () =>
+      database.rows(
+        "SELECT d.stage, s.name AS at FROM deal d LEFT JOIN pipeline_stage s ON s.id = d.pipeline_stage_id WHERE d.id = '" +
+          id +
+          "'",
+      );
+
+    // The pipeline has no Contract Sent stage: the move is refused, and the
+    // deal stays at its named stage instead of landing on MQL.
+    await expect(
+      DealService.setStage(
+        A.organizationId,
+        { id, stage: "CONTRACT_SENT" },
+        A.userId,
+      ),
+    ).rejects.toThrow("pipeline has no stage");
+    expect(await at()).toEqual([
+      { stage: "DEMO_BOOKED", at: "Initial Meeting / Demo" },
+    ]);
+
+    await DealService.setStage(
+      A.organizationId,
+      { id, stage: "MQL" },
+      A.userId,
+    );
+    expect(await at()).toEqual([{ stage: "MQL", at: "MQL" }]);
   });
 
   it("moves a pipeline deal to its pipeline's won stage when won", async () => {

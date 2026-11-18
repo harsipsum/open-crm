@@ -16,11 +16,11 @@ import { deal, pipeline, pipelineStage } from "@/db/schema";
 import { dealAccessCondition } from "@/server/features/access/access";
 import type { DealStage, StageKind } from "@/shared/crm-enums";
 import { roundMoney } from "@/shared/currency";
-import { OPEN_DEAL_STAGES } from "@/shared/deal-stages";
+import { builtInStageOf, OPEN_DEAL_STAGES } from "@/shared/deal-stages";
 
 // Named deal pipelines and their own stages. A deal placed in one keeps a
 // built-in stage too: won and lost stages map to CLOSED_WON and CLOSED_LOST,
-// the open ones to the built-in open stages by their place, so the Overview
+// the open ones to the built-in open stage their name means, so the Overview
 // and every report keep counting it.
 
 export type PipelineStageRef = {
@@ -92,15 +92,6 @@ async function stagesOf(organizationId: string, pipelineId: string) {
     .orderBy(asc(pipelineStage.position));
 }
 
-function builtInStage(kind: StageKind, openPlace: number): DealStage {
-  if (kind === "DONE") return "CLOSED_WON";
-  if (kind === "DROPPED") return "CLOSED_LOST";
-  return (
-    OPEN_DEAL_STAGES[Math.min(openPlace, OPEN_DEAL_STAGES.length - 1)] ??
-    "DEMO_BOOKED"
-  );
-}
-
 function refOf(
   pipelineId: string,
   stages: Awaited<ReturnType<typeof stagesOf>>,
@@ -111,14 +102,11 @@ function refOf(
   );
   const found = stages[index];
   if (!found) return null;
-  const openPlace = stages
-    .slice(0, index)
-    .filter((stage) => stage.kind === "OPEN").length;
   return {
     id: found.id,
     pipelineId,
     kind: found.kind,
-    stage: builtInStage(found.kind, openPlace),
+    stage: builtInStageOf(found.name, found.kind),
   };
 }
 
@@ -260,8 +248,8 @@ async function summary(organizationId: string) {
 /**
  * Puts the pipeline's stages in this order (adding any it lacks, of the
  * kind its name says); stages left out keep their order after them. Every
- * open deal in the pipeline then counts as the built-in open stage at its
- * stage's new place. Won and lost deals don't move.
+ * open deal in the pipeline is re-counted as the built-in open stage its
+ * stage's name maps to. Won and lost deals don't move.
  */
 async function orderStages(
   organizationId: string,
@@ -281,7 +269,6 @@ async function orderStages(
   // Stable: stages left out keep their order.
   const ordered = sortBy(stages, rank);
   // One batch: the order and the open deals' built-in stages move together.
-  let openPlace = 0;
   await runBatch((tx) =>
     ordered.flatMap((stage, position) => {
       const moveStage = tx
@@ -296,7 +283,7 @@ async function orderStages(
       if (stage.kind !== "OPEN") return [moveStage];
       const recount = tx
         .update(deal)
-        .set({ stage: builtInStage("OPEN", openPlace) })
+        .set({ stage: builtInStageOf(stage.name, "OPEN") })
         .where(
           and(
             eq(deal.organizationId, organizationId),
@@ -304,7 +291,6 @@ async function orderStages(
             inArray(deal.stage, OPEN_DEAL_STAGES),
           ),
         );
-      openPlace += 1;
       return [moveStage, recount];
     }),
   );

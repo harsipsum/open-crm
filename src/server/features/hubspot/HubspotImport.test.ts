@@ -30,6 +30,13 @@ async function seed() {
     objectType: "stages",
     records: [
       {
+        id: "default:demo",
+        pipelineId: "default",
+        label: "Initial Meeting / Demo",
+        stageKind: "OPEN",
+        builtInStage: "DEMO_BOOKED",
+      },
+      {
         id: "default:won",
         pipelineId: "default",
         label: "Deal Won",

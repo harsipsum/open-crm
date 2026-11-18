@@ -4,6 +4,7 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { sortBy } from "remeda";
+import { builtInStageOf } from "../src/shared/deal-stages.ts";
 import { readArchived } from "./hubspot-archived.ts";
 import {
   associationRowSchema,
@@ -17,12 +18,6 @@ import {
 } from "./hubspot-api.ts";
 
 const TYPES = ["companies", "contacts", "deals", "notes"];
-const OPEN_STAGES = [
-  "DEMO_BOOKED",
-  "QUALIFIED_TO_BUY",
-  "DECISION_MAKER_BOUGHT_IN",
-  "CONTRACT_SENT",
-];
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 import { HubspotReader } from "./hubspot-reader.ts";
@@ -166,7 +161,6 @@ export async function runImport({
       archived: 0,
     };
     for (const p of pipelines) {
-      let open = 0;
       const stages = sortBy(p.stages, (s) => s.displayOrder).map((s) => {
         const closed = String(s.metadata?.isClosed) === "true";
         const kind = closed
@@ -174,12 +168,7 @@ export async function runImport({
             ? "DONE"
             : "DROPPED"
           : "OPEN";
-        const builtInStage =
-          kind === "DONE"
-            ? "CLOSED_WON"
-            : kind === "DROPPED"
-              ? "CLOSED_LOST"
-              : OPEN_STAGES[Math.min(open++, OPEN_STAGES.length - 1)];
+        const builtInStage = builtInStageOf(s.label, kind);
         return {
           ...s,
           id: `${p.id}:${s.id}`,
