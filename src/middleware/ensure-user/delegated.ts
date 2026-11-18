@@ -10,6 +10,7 @@ import {
   member,
   hubspotObject,
   crmRole,
+  sdrTimer,
 } from "@/db/schema";
 
 // The gateway's people are stored in the `user` table, keyed by the gateway's
@@ -111,6 +112,25 @@ export async function ensureUserRecord(userId: string, userEmail: string) {
           and(
             eq(member.organizationId, owner.organizationId),
             eq(member.userId, owner.id),
+          ),
+        ),
+      // Their reports and first-call timers point at them, not the placeholder.
+      tx
+        .update(crmRole)
+        .set({ managerId: userId })
+        .where(
+          and(
+            eq(crmRole.organizationId, owner.organizationId),
+            eq(crmRole.managerId, owner.id),
+          ),
+        ),
+      tx
+        .update(sdrTimer)
+        .set({ ownerId: userId })
+        .where(
+          and(
+            eq(sdrTimer.organizationId, owner.organizationId),
+            eq(sdrTimer.ownerId, owner.id),
           ),
         ),
       // The placeholder's CRM role, team and rotation become theirs, unless

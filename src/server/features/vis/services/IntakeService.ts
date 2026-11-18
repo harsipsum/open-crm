@@ -70,6 +70,9 @@ async function ownerFor(organizationId: string, ownerEmail?: string) {
   const left = new Set(
     team.filter((row) => row.leftAt).map((row) => row.userId),
   );
+  // The import's unassigned owner is nobody: never a lead's owner.
+  for (const m of members)
+    if (m.email.endsWith("@import.invalid")) left.add(m.userId);
   const working = members.filter((member) => !left.has(member.userId));
   if (ownerEmail) {
     const named = members.find(
@@ -91,7 +94,6 @@ async function ownerFor(organizationId: string, ownerEmail?: string) {
           (member) =>
             member.emailVerified &&
             !member.userId.startsWith("hs:") &&
-            !member.email.toLowerCase().endsWith("@import.invalid") &&
             !roles.get(member.userId)?.rotationOff,
         );
   if (pool.length === 0) {
@@ -271,7 +273,7 @@ async function createLead(
     name: input.dealName ?? `${input.company.name}: ${productLabel}`,
     companyId,
     ownerId,
-    stage: "DEMO_BOOKED",
+    stage: builtInStageOf(STAGE_ROLES.intake, "OPEN"),
     amount: input.amount ?? null,
     currency: input.currency,
   });
