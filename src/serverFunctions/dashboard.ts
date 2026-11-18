@@ -11,5 +11,6 @@ export const getDashboardSummary = createServerFn({ method: "GET" })
       context.organizationId,
       context.userId,
       data.scope,
+      data.dayEnd,
     ),
   );

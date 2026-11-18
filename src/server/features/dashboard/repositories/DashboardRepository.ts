@@ -4,10 +4,13 @@ import {
   count,
   desc,
   eq,
+  gt,
   gte,
   inArray,
   isNull,
   lt,
+  ne,
+  notExists,
   or,
   sql,
   type SQL,
@@ -15,6 +18,7 @@ import {
 import { db } from "@/db";
 import { dealAccessCondition } from "@/server/features/access/access";
 import { activity, company, deal, user } from "@/db/schema";
+import { alias } from "drizzle-orm/sqlite-core";
 import { countedIn } from "@/server/features/currency/repositories/DealConversionRepository";
 import { OPEN_DEAL_STAGES } from "@/shared/deal-stages";
 
@@ -183,6 +187,85 @@ async function biggestOpen(scope: DealScope, base: string, limit: number) {
   );
 }
 
+/**
+ * Renewals coming up: won deals whose first anniversary falls in [from, to),
+ * where the company has no live deal opened since the win (the renewal is not
+ * in the pipeline yet). Soonest first, with how many there are in all.
+ */
+async function renewalsDue(
+  scope: DealScope,
+  window: { from: string; to: string },
+  limit: number,
+) {
+  const later = alias(deal, "later_deal");
+  const yearAgo = (day: string) => sql`date(${day}, '-1 year')`;
+  const where = and(
+    dealsInScope(scope),
+    eq(deal.stage, "CLOSED_WON"),
+    gte(deal.closedAt, yearAgo(window.from)),
+    lt(deal.closedAt, yearAgo(window.to)),
+    notExists(
+      db
+        .select({ id: later.id })
+        .from(later)
+        .where(
+          and(
+            eq(later.organizationId, deal.organizationId),
+            eq(later.companyId, deal.companyId),
+            ne(later.id, deal.id),
+            isNull(later.archivedAt),
+            gt(later.createdAt, deal.closedAt),
+          ),
+        ),
+    ),
+  );
+  const [rows, [total]] = await Promise.all([
+    db
+      .select({
+        id: deal.id,
+        name: deal.name,
+        amount: deal.amount,
+        currency: deal.currency,
+        closedAt: deal.closedAt,
+        renewsOn: sql<string>`date(${deal.closedAt}, '+1 year')`,
+        companyId: company.id,
+        companyName: company.name,
+        iconUrl: company.iconUrl,
+        iconDarkUrl: company.iconDarkUrl,
+        iconTone: company.iconTone,
+        ownerName: user.name,
+      })
+      .from(deal)
+      .innerJoin(
+        company,
+        and(
+          eq(company.id, deal.companyId),
+          eq(company.organizationId, deal.organizationId),
+        ),
+      )
+      .leftJoin(user, eq(user.id, deal.ownerId))
+      .where(where)
+      .orderBy(asc(deal.closedAt), asc(deal.id))
+      .limit(limit),
+    db.select({ count: count() }).from(deal).where(where),
+  ]);
+  return {
+    count: total?.count ?? 0,
+    deals: rows.map(
+      ({ companyId, companyName, iconUrl, iconDarkUrl, iconTone, ...row }) => ({
+        ...row,
+        company: {
+          id: companyId,
+          name: companyName,
+          iconUrl,
+          iconDarkUrl,
+          iconTone,
+        },
+      }),
+    ),
+  };
+}
+
 /** A live company to start a deal with, newest first. */
 async function firstCompany(organizationId: string) {
   const [row] = await db
@@ -227,4 +310,5 @@ export const DashboardRepository = {
   createdOrClosedSince,
   closingBetween,
   biggestOpen,
+  renewalsDue,
 };

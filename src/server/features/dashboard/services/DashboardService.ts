@@ -19,7 +19,9 @@ const TREND_MONTHS = 6;
 const RATE_WINDOW_DAYS = 90;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const BIGGEST_OPEN = 6;
-const OVERDUE_TASKS = 10;
+const DUE_TASKS = 10;
+const RENEWAL_DAYS = 90;
+const RENEWALS = 8;
 const RECENT_ACTIVITY = 12;
 
 /** "2026-10": the UTC month `offset` months from `now`'s. */
@@ -127,8 +129,15 @@ async function summary(
   organizationId: string,
   userId: string,
   scope: DashboardScope,
+  dayEnd?: string,
 ) {
   const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  // The viewer's day, or the UTC one; never earlier than now.
+  const endOfDay =
+    dayEnd && dayEnd > now.toISOString()
+      ? dayEnd
+      : new Date(Date.parse(today) + DAY_MS).toISOString();
   const mine = scope === "me";
   const deals: DealScope = { organizationId, ownerId: mine ? userId : null };
   const months = Array.from({ length: TREND_MONTHS }, (_, index) =>
@@ -142,7 +151,8 @@ async function summary(
     history,
     closingThisMonth,
     biggestOpen,
-    overdueTasks,
+    dueTasks,
+    renewals,
     recentActivity,
     unconverted,
     firstCompany,
@@ -158,13 +168,24 @@ async function summary(
       `${monthOf(now, 1)}-01`,
     ),
     DashboardRepository.biggestOpen(deals, base, BIGGEST_OPEN),
-    // Tasks are always the viewer's own.
+    // Tasks are always the viewer's own: everything due by the end of today,
+    // overdue first.
     ActivityRepository.openTasks(organizationId, {
       userId,
       window: "overdue",
-      limit: OVERDUE_TASKS,
-      now: now.toISOString(),
+      limit: DUE_TASKS,
+      now: endOfDay,
     }),
+    DashboardRepository.renewalsDue(
+      deals,
+      {
+        from: today,
+        to: new Date(Date.parse(today) + RENEWAL_DAYS * DAY_MS)
+          .toISOString()
+          .slice(0, 10),
+      },
+      RENEWALS,
+    ),
     ActivityRepository.recent(organizationId, {
       createdById: mine ? userId : null,
       limit: RECENT_ACTIVITY,
@@ -210,7 +231,11 @@ async function summary(
       value: roundMoney(closingThisMonth.value, base),
     },
     biggestOpen,
-    overdueTasks,
+    dueTasks,
+    overdueTasks: dueTasks.filter(
+      (task) => task.dueAt !== null && task.dueAt < now.toISOString(),
+    ),
+    renewals: { windowDays: RENEWAL_DAYS, ...renewals },
     recentActivity,
     firstCompany,
     hasDeals,
