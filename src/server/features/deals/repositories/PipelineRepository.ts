@@ -48,13 +48,18 @@ async function findPipeline(organizationId: string, name: string) {
   return row?.id ?? null;
 }
 
-/** The pipeline of this name, added (last in order) when there's none. */
+/**
+ * The pipeline of this name, added (last in order) when there's none.
+ * `beforeAdd` runs first and may refuse the add by throwing.
+ */
 async function ensurePipeline(
   organizationId: string,
   name: string,
+  beforeAdd?: () => void,
 ): Promise<string> {
   const found = await findPipeline(organizationId, name);
   if (found) return found;
+  beforeAdd?.();
   const [position] = await db
     .select({ value: count() })
     .from(pipeline)
@@ -126,17 +131,20 @@ export function stageKindOf(name: string): StageKind {
  * says: a new open stage goes after the open ones, a won one after the
  * won ones, a lost one last, so a file's order of first sight never puts
  * an outcome before the stages that lead to it. Open stages already there
- * keep their place, so no deal's built-in stage moves.
+ * keep their place, so no deal's built-in stage moves. `beforeAdd` runs
+ * first and may refuse the add by throwing.
  */
 async function ensureStage(
   organizationId: string,
   pipelineId: string,
   name: string,
   kind: StageKind,
+  beforeAdd?: () => void,
 ): Promise<PipelineStageRef> {
   const stages = await stagesOf(organizationId, pipelineId);
   const found = refOf(pipelineId, stages, name);
   if (found) return found;
+  beforeAdd?.();
   const before = stages.filter(
     (stage) => KIND_RANK[stage.kind] <= KIND_RANK[kind],
   );

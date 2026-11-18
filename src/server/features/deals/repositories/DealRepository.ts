@@ -112,8 +112,11 @@ function pipelineStageFor(to: DealStage) {
   )}) order by "ps"."position" limit 1)`;
 }
 
-/** One deal of the organization, with its company and owner. */
-async function findById(organizationId: string, id: string) {
+/**
+ * One deal of the organization, with its company and owner, as the current
+ * member sees it (`scoped`), or as it is.
+ */
+async function findById(organizationId: string, id: string, scoped = true) {
   const [row] = await db
     .select({
       deal,
@@ -126,7 +129,11 @@ async function findById(organizationId: string, id: string) {
     .innerJoin(user, eq(user.id, deal.ownerId))
     .leftJoin(pipeline, ofItsPipeline)
     .leftJoin(pipelineStage, ofItsPipelineStage)
-    .where(inOrganization(organizationId, id))
+    .where(
+      scoped
+        ? inOrganization(organizationId, id)
+        : and(eq(deal.organizationId, organizationId), eq(deal.id, id)),
+    )
     .limit(1);
   if (!row) return null;
   return {
@@ -162,8 +169,10 @@ type DealPatch = Partial<
 /**
  * Changes the deal and writes the custom field values given with the
  * change, in one batch (the caller has checked the deal is the
- * organization's: a value names its record by id alone). The changed deal
- * as findById reads it, or null when it isn't the organization's.
+ * organization's: a value names its record by id alone). The scoped update's
+ * own RETURNING row says whether it landed: the changed deal as it now is
+ * (even when the change hands it out of the member's view), or null when the
+ * member may not change it.
  */
 async function update(
   organizationId: string,
@@ -171,14 +180,16 @@ async function update(
   patch: DealPatch,
   fields: FieldWrite[] = [],
 ) {
-  await runBatch((tx) => [
+  const [updated] = await runBatch((tx) => [
     tx
       .update(deal)
       .set({ ...patch, updatedAt: new Date().toISOString() })
-      .where(inOrganization(organizationId, id)),
+      .where(inOrganization(organizationId, id))
+      .returning({ id: deal.id }),
     ...fieldValueWrites(tx, organizationId, "DEAL", id, fields),
   ]);
-  return findById(organizationId, id);
+  if (!Array.isArray(updated) || updated.length === 0) return null;
+  return findById(organizationId, id, false);
 }
 
 type StageMove = {

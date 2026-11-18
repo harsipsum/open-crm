@@ -12,6 +12,7 @@ vi.mock("cloudflare:workers", () => ({ env: {} }));
 vi.mock("@/db", () => ({ db: database.db }));
 vi.mock("@/db/runBatch", () => database.runBatchModule);
 
+import { resolveAccess, runWithAccess } from "@/server/features/access/access";
 import { DealService } from "@/server/features/deals/services/DealService";
 import { ImportService } from "./ImportService";
 
@@ -48,7 +49,7 @@ const outcomes = (result: { results: { outcome: string }[] }) =>
 describe("ImportService pipelines", () => {
   beforeEach(async () => {
     await database.exec(
-      `DELETE FROM field_value; DELETE FROM activity; DELETE FROM deal; DELETE FROM pipeline_stage; DELETE FROM pipeline; DELETE FROM contact; DELETE FROM company; DELETE FROM workspace; DELETE FROM member; DELETE FROM organization; DELETE FROM "user";`,
+      `DELETE FROM field_value; DELETE FROM activity; DELETE FROM deal; DELETE FROM pipeline_stage; DELETE FROM pipeline; DELETE FROM contact; DELETE FROM company; DELETE FROM workspace; DELETE FROM crm_role; DELETE FROM member; DELETE FROM organization; DELETE FROM "user";`,
     );
     await database.seedTwoOrganizations();
   });
@@ -282,6 +283,64 @@ describe("ImportService pipelines", () => {
       A.userId,
     );
     expect(await at()).toEqual([{ stage: "MQL", at: "MQL" }]);
+  });
+
+  it("adds no pipeline or stage for a skipped row, and lets only an admin add one", async () => {
+    await ImportService.importChunk(
+      A,
+      chunk([deal("Lead", "Sales Pipeline", "Lead Generated")]),
+    );
+    // A duplicate the run skips leaves the pipeline as it was.
+    expect(
+      outcomes(
+        await ImportService.importChunk(
+          A,
+          chunk([
+            deal("Lead", "Sales Pipeline", "Brand New Stage"),
+            deal("Lead", "Side Pipeline", "Lead Generated"),
+          ]),
+        ),
+      ),
+    ).toEqual(["skipped", "skipped"]);
+    const shape = async () =>
+      database.rows(
+        "SELECT p.name AS pipeline, s.name AS stage FROM pipeline_stage s JOIN pipeline p ON p.id = s.pipeline_id WHERE p.organization_id = 'org_a' ORDER BY p.name, s.name",
+      );
+    expect(await shape()).toEqual([
+      { pipeline: "Sales Pipeline", stage: "Lead Generated" },
+    ]);
+
+    // A seller imports onto stages that exist, and adds none.
+    await database.exec(`
+      INSERT INTO "user" (id, name, email, email_verified, created_at, updated_at)
+        VALUES ('s1', 'Sam', 'sam@a.test', 1, 0, 0);
+      INSERT INTO member (id, organization_id, user_id, role, created_at)
+        VALUES ('m_s1', 'org_a', 's1', 'member', 0);
+      INSERT INTO crm_role (organization_id, user_id, role) VALUES ('org_a', 's1', 'seller');
+    `);
+    const seller = await resolveAccess({
+      userId: "s1",
+      organizationId: A.organizationId,
+      role: "member",
+    });
+    const result = await runWithAccess(seller, () =>
+      ImportService.importChunk(
+        { organizationId: A.organizationId, userId: "s1" },
+        chunk([
+          deal("Seller lead", "Sales Pipeline", "Lead Generated"),
+          deal("Seller new stage", "Sales Pipeline", "Brand New Stage"),
+          deal("Seller new pipeline", "Side Pipeline", "Lead Generated"),
+        ]),
+      ),
+    );
+    expect(result.results.map((row) => [row.outcome, row.error])).toEqual([
+      ["created", undefined],
+      ["failed", expect.stringContaining("Only an admin adds")],
+      ["failed", expect.stringContaining("Only an admin adds")],
+    ]);
+    expect(await shape()).toEqual([
+      { pipeline: "Sales Pipeline", stage: "Lead Generated" },
+    ]);
   });
 
   it("moves a pipeline deal to its pipeline's won stage when won", async () => {

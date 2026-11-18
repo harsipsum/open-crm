@@ -96,6 +96,46 @@ describe("Star CRM flow", () => {
     expect(await VisRepository.trackedDeals(B)).toEqual([]);
   });
 
+  it("deals a new lead only to a verified, working Star OS member", async () => {
+    // A HubSpot owner the import made, a seller with no verified email and a
+    // seller who left: none of them signs in, so none gets the lead.
+    await database.exec(`
+      DELETE FROM crm_role;
+      INSERT INTO "user" (id, name, email, email_verified, created_at, updated_at) VALUES
+        ('hs:org_a:1:owners:9', 'HubSpot owner', 'owner@a.test', 0, 0, 0),
+        ('unverified', 'Una', 'una@a.test', 0, 0, 0),
+        ('placeholder', 'Pat', 'pat@import.invalid', 1, 0, 0),
+        ('gone', 'Gus', 'gus@a.test', 1, 0, 0);
+      INSERT INTO member (id, organization_id, user_id, role, created_at) VALUES
+        ('m_hs', 'org_a', 'hs:org_a:1:owners:9', 'member', 0),
+        ('m_un', 'org_a', 'unverified', 'member', 0),
+        ('m_pl', 'org_a', 'placeholder', 'member', 0),
+        ('m_gone', 'org_a', 'gone', 'member', 0);
+      INSERT INTO crm_role (organization_id, user_id, role, left_at) VALUES
+        ('org_a', 'hs:org_a:1:owners:9', 'seller', NULL),
+        ('org_a', 'unverified', 'seller', NULL),
+        ('org_a', 'placeholder', 'seller', NULL),
+        ('org_a', 'gone', 'seller', '2026-11-01');
+    `);
+    const owners = new Set<string>();
+    for (const n of [1, 2, 3]) {
+      const created = await newLead(
+        A,
+        {
+          ...lead,
+          person: { ...lead.person, email: `rana${n}@synth-holdings.example` },
+          attribution: { ...lead.attribution, gclid: `synthetic-gclid-r${n}` },
+        },
+        "VISAGENT",
+      );
+      const [row] = await database.rows(
+        "SELECT owner_id FROM deal WHERE id = '" + created.dealId + "'",
+      );
+      if (typeof row?.owner_id === "string") owners.add(row.owner_id);
+    }
+    expect([...owners]).toEqual(["user_a"]);
+  });
+
   it("escalates an uncalled lead once at 24 hours, and never a called one", async () => {
     const late = await newLead(A, lead, null);
     const called = await newLead(

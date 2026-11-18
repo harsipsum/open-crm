@@ -26,6 +26,7 @@ import {
   resolveAccess,
   runWithAccess,
 } from "./access";
+import { DealService } from "@/server/features/deals/services/DealService";
 import { TeamService } from "./TeamService";
 
 const A = "org_a";
@@ -91,6 +92,48 @@ describe("record scoping", () => {
   it("shows managers their team's deals, and admins every deal", async () => {
     expect(await visibleDeals("mgr")).toEqual(["d_mgr", "d_pool", "d_s1"]);
     expect(await visibleDeals("user_a", "owner")).toHaveLength(5);
+  });
+
+  it("refuses access to a member marked as left", async () => {
+    await TeamService.setMemberLeft(A, "user_a", {
+      userId: "s2",
+      left: true,
+      handTo: null,
+    });
+    await expect(visibleDeals("s2")).rejects.toThrow("FORBIDDEN");
+    await TeamService.setMemberLeft(A, "user_a", {
+      userId: "s2",
+      left: false,
+      handTo: null,
+    });
+    expect(await visibleDeals("s2")).toEqual(["d_pool", "d_s2"]);
+  });
+
+  it("reports a manager's hand-off outside their team as done, and refuses a hidden deal", async () => {
+    const mgr = await resolveAccess({
+      userId: "mgr",
+      organizationId: A,
+      role: "member",
+    });
+    await runWithAccess(mgr, async () => {
+      // The change lands, though it takes the deal out of the manager's view.
+      const handed = await DealService.updateDeal(A, {
+        id: "d_mgr",
+        ownerId: "s2",
+      });
+      expect(handed.owner.id).toBe("s2");
+      await expect(
+        DealService.updateDeal(A, { id: "d_s2", name: "Renamed" }),
+      ).rejects.toThrow();
+    });
+    expect(
+      await database.rows(
+        "SELECT id, owner_id, name FROM deal WHERE id IN ('d_mgr', 'd_s2') ORDER BY id",
+      ),
+    ).toEqual([
+      { id: "d_mgr", owner_id: "s2", name: "Manager deal" },
+      { id: "d_s2", owner_id: "s2", name: "Seller two deal" },
+    ]);
   });
 
   it("puts a leaver's book in the shared pool, or hands it over in one step", async () => {
