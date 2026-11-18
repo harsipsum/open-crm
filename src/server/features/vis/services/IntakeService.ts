@@ -55,9 +55,12 @@ async function requirePipeline(organizationId: string) {
 
 /**
  * The owner a new lead goes to on arrival: the member named (unless they
- * left), else whichever working seller who signs in to Star OS holds the
- * fewest Star CRM leads. With no such seller, the round robin runs over every
- * working Star OS member.
+ * left), else whichever working member in the rotation holds the fewest Star
+ * CRM leads. The rotation is its own setting, so an admin or a manager can be
+ * in it; unset, it is the sellers. A HubSpot placeholder in it takes leads
+ * for a seller who hasn't signed in yet, and their first sign-in moves them
+ * over. With nobody in it, the round robin runs over every working Star OS
+ * member not taken out of it.
  */
 async function ownerFor(organizationId: string, ownerEmail?: string) {
   const [members, team] = await Promise.all([
@@ -67,15 +70,10 @@ async function ownerFor(organizationId: string, ownerEmail?: string) {
   const left = new Set(
     team.filter((row) => row.leftAt).map((row) => row.userId),
   );
+  // The import's unassigned owner is nobody: never a lead's owner.
+  for (const m of members)
+    if (m.email.endsWith("@import.invalid")) left.add(m.userId);
   const working = members.filter((member) => !left.has(member.userId));
-  // The round robin deals only to people who sign in to Star OS: a verified
-  // email, not a HubSpot owner the import made a placeholder for.
-  const eligible = working.filter(
-    (member) =>
-      member.emailVerified &&
-      !member.userId.startsWith("hs:") &&
-      !member.email.toLowerCase().endsWith("@import.invalid"),
-  );
   if (ownerEmail) {
     const named = members.find(
       (member) => member.email.toLowerCase() === ownerEmail.toLowerCase(),
@@ -85,18 +83,25 @@ async function ownerFor(organizationId: string, ownerEmail?: string) {
     }
     if (!left.has(named.userId)) return named.userId;
   }
-  const sellers = new Set(
-    team.filter((row) => row.role === "seller").map((row) => row.userId),
-  );
-  if (eligible.length === 0) {
+  const roles = new Map(team.map((row) => [row.userId, row]));
+  const inRotation = working.filter((m) => roles.get(m.userId)?.inRotation);
+  // With nobody in the rotation, only people who sign in to Star OS: a
+  // verified email, not a HubSpot owner the import made a placeholder for.
+  const pool =
+    inRotation.length > 0
+      ? inRotation
+      : working.filter(
+          (member) =>
+            member.emailVerified &&
+            !member.userId.startsWith("hs:") &&
+            !roles.get(member.userId)?.rotationOff,
+        );
+  if (pool.length === 0) {
     throw new AppError(
       "VALIDATION_ERROR",
       "The CRM has no working Star OS members.",
     );
   }
-  const pool = eligible.some((member) => sellers.has(member.userId))
-    ? eligible.filter((member) => sellers.has(member.userId))
-    : eligible;
   const deals = await VisRepository.trackedDeals(organizationId);
   const load = new Map(pool.map((member) => [member.userId, 0]));
   for (const row of deals) {
@@ -268,7 +273,7 @@ async function createLead(
     name: input.dealName ?? `${input.company.name}: ${productLabel}`,
     companyId,
     ownerId,
-    stage: "DEMO_BOOKED",
+    stage: builtInStageOf(STAGE_ROLES.intake, "OPEN"),
     amount: input.amount ?? null,
     currency: input.currency,
   });

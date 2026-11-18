@@ -9,6 +9,7 @@ import {
   notExists,
   or,
   sql,
+  type SQL,
 } from "drizzle-orm";
 import { db } from "@/db";
 import { runBatch } from "@/db/runBatch";
@@ -88,6 +89,17 @@ function inOrganization(organizationId: string, id: string) {
 }
 
 /**
+ * A stage name as `stageNameKey` keys it: trimmed, lower case, each run of
+ * whitespace one space. SQLite has no regex, so each pass halves the runs:
+ * five passes collapse up to 32 in a row.
+ */
+function stageNameKeySql(name: SQL) {
+  let key = sql`replace(replace(replace(${name}, char(9), ' '), char(10), ' '), char(13), ' ')`;
+  for (let pass = 0; pass < 5; pass++) key = sql`replace(${key}, '  ', ' ')`;
+  return sql`lower(trim(${key}))`;
+}
+
+/**
  * The stage of the deal's own pipeline a move to `to` lands on: its first
  * won or lost stage, or its first open stage whose name maps to `to`. Null
  * for a deal in no pipeline, or a pipeline without such a stage.
@@ -106,7 +118,7 @@ function pipelineStageFor(to: DealStage) {
   if (names.length === 0) return sql<string | null>`null`;
   return sql<
     string | null
-  >`(select "ps"."id" from "pipeline_stage" "ps" where "ps"."pipeline_id" = "deal"."pipeline_id" and "ps"."kind" = 'OPEN' and lower(trim("ps"."name")) in (${sql.join(
+  >`(select "ps"."id" from "pipeline_stage" "ps" where "ps"."pipeline_id" = "deal"."pipeline_id" and "ps"."kind" = 'OPEN' and ${stageNameKeySql(sql`"ps"."name"`)} in (${sql.join(
     names.map((name) => sql`${name}`),
     sql`, `,
   )}) order by "ps"."position" limit 1)`;

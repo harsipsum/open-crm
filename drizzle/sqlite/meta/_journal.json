@@ -50,6 +50,13 @@
       "when": 1794953387965,
       "tag": "0006_furry_nuke",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1794985639196,
+      "tag": "0007_brainy_annihilus",
+      "breakpoints": true
     }
   ]
 }

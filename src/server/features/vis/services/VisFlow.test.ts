@@ -13,6 +13,13 @@ vi.mock("cloudflare:workers", () => ({ env: {} }));
 vi.mock("@/db", () => ({ db: database.db }));
 vi.mock("@/db/runBatch", () => database.runBatchModule);
 
+import { and, eq } from "drizzle-orm";
+import { deal } from "@/db/schema";
+import {
+  dealAccessCondition,
+  resolveAccess,
+  runWithAccess,
+} from "@/server/features/access/access";
 import { VisRepository } from "../repositories/VisRepository";
 import { VisWorkRepository } from "../repositories/VisWorkRepository";
 import { IntakeService } from "./IntakeService";
@@ -96,44 +103,134 @@ describe("Star CRM flow", () => {
     expect(await VisRepository.trackedDeals(B)).toEqual([]);
   });
 
-  it("deals a new lead only to a verified, working Star OS member", async () => {
-    // A HubSpot owner the import made, a seller with no verified email and a
-    // seller who left: none of them signs in, so none gets the lead.
-    await database.exec(`
-      DELETE FROM crm_role;
-      INSERT INTO "user" (id, name, email, email_verified, created_at, updated_at) VALUES
-        ('hs:org_a:1:owners:9', 'HubSpot owner', 'owner@a.test', 0, 0, 0),
-        ('unverified', 'Una', 'una@a.test', 0, 0, 0),
-        ('placeholder', 'Pat', 'pat@import.invalid', 1, 0, 0),
-        ('gone', 'Gus', 'gus@a.test', 1, 0, 0);
-      INSERT INTO member (id, organization_id, user_id, role, created_at) VALUES
-        ('m_hs', 'org_a', 'hs:org_a:1:owners:9', 'member', 0),
-        ('m_un', 'org_a', 'unverified', 'member', 0),
-        ('m_pl', 'org_a', 'placeholder', 'member', 0),
-        ('m_gone', 'org_a', 'gone', 'member', 0);
-      INSERT INTO crm_role (organization_id, user_id, role, left_at) VALUES
-        ('org_a', 'hs:org_a:1:owners:9', 'seller', NULL),
-        ('org_a', 'unverified', 'seller', NULL),
-        ('org_a', 'placeholder', 'seller', NULL),
-        ('org_a', 'gone', 'seller', '2026-11-01');
-    `);
-    const owners = new Set<string>();
-    for (const n of [1, 2, 3]) {
+  /** Deals `n` new leads and returns each one's owner, in order. */
+  async function dealLeads(n: number, tag: string) {
+    const owners: string[] = [];
+    for (let i = 1; i <= n; i++) {
       const created = await newLead(
         A,
         {
           ...lead,
-          person: { ...lead.person, email: `rana${n}@synth-holdings.example` },
-          attribution: { ...lead.attribution, gclid: `synthetic-gclid-r${n}` },
+          person: {
+            ...lead.person,
+            email: `rana-${tag}${i}@synth-holdings.example`,
+          },
+          attribution: {
+            ...lead.attribution,
+            gclid: `synthetic-gclid-${tag}${i}`,
+          },
         },
         "VISAGENT",
       );
       const [row] = await database.rows(
         "SELECT owner_id FROM deal WHERE id = '" + created.dealId + "'",
       );
-      if (typeof row?.owner_id === "string") owners.add(row.owner_id);
+      owners.push(typeof row?.owner_id === "string" ? row.owner_id : "");
     }
-    expect([...owners]).toEqual(["user_a"]);
+    return owners;
+  }
+
+  // Vistar's shape: a founder who hasn't signed in (their HubSpot
+  // placeholder), a founder the gateway made admin, the sales head as a
+  // manager, three SDRs on her team, the audit account (an admin taken out
+  // of the rotation), the unassigned placeholder and a seller who left.
+  async function seedVistarTeam() {
+    await database.exec(`
+      DELETE FROM crm_role;
+      INSERT INTO "user" (id, name, email, email_verified, created_at, updated_at) VALUES
+        ('hs:org_a:1:owners:1', 'Vin', 'vin@a.test', 0, 0, 0),
+        ('jit', 'Jit', 'jit@a.test', 1, 0, 0),
+        ('bhu', 'Bhu', 'bhu@a.test', 1, 0, 0),
+        ('rag', 'Rag', 'rag@a.test', 1, 0, 0),
+        ('anj', 'Anj', 'anj@a.test', 1, 0, 0),
+        ('pra', 'Pra', 'pra@a.test', 0, 0, 0),
+        ('audit', 'Audit', 'audit@a.test', 1, 0, 0),
+        ('hs:org_a:1:system:unassigned-owner', 'Unassigned', 'org_a.1.unassigned@import.invalid', 0, 0, 0),
+        ('gone', 'Gus', 'gus@a.test', 1, 0, 0);
+      INSERT INTO member (id, organization_id, user_id, role, created_at) VALUES
+        ('m_vin', 'org_a', 'hs:org_a:1:owners:1', 'member', 0),
+        ('m_jit', 'org_a', 'jit', 'admin', 0),
+        ('m_bhu', 'org_a', 'bhu', 'member', 0),
+        ('m_rag', 'org_a', 'rag', 'member', 0),
+        ('m_anj', 'org_a', 'anj', 'member', 0),
+        ('m_pra', 'org_a', 'pra', 'member', 0),
+        ('m_audit', 'org_a', 'audit', 'member', 0),
+        ('m_un', 'org_a', 'hs:org_a:1:system:unassigned-owner', 'member', 0),
+        ('m_gone', 'org_a', 'gone', 'member', 0);
+      INSERT INTO crm_role (organization_id, user_id, role, manager_id, left_at, in_rotation) VALUES
+        ('org_a', 'hs:org_a:1:owners:1', 'seller', NULL, NULL, NULL),
+        ('org_a', 'jit', 'seller', NULL, NULL, 1),
+        ('org_a', 'bhu', 'manager', NULL, NULL, 1),
+        ('org_a', 'rag', 'seller', 'bhu', NULL, NULL),
+        ('org_a', 'anj', 'seller', 'bhu', NULL, NULL),
+        ('org_a', 'pra', 'seller', 'bhu', NULL, 1),
+        ('org_a', 'audit', 'admin', NULL, NULL, 0),
+        ('org_a', 'hs:org_a:1:system:unassigned-owner', 'manager', NULL, NULL, NULL),
+        ('org_a', 'gone', 'seller', NULL, '2026-11-01', 1);
+    `);
+  }
+
+  it("deals new leads round the six in the rotation, whatever their role, and never to the audit account or the unassigned placeholder", async () => {
+    await seedVistarTeam();
+    const owners = await dealLeads(12, "six");
+    expect(new Set(owners)).toEqual(
+      new Set(["hs:org_a:1:owners:1", "jit", "bhu", "rag", "anj", "pra"]),
+    );
+    expect(owners.filter((id) => id === "jit")).toHaveLength(2);
+  });
+
+  it("gives an admin in the rotation a round robin lead", async () => {
+    await seedVistarTeam();
+    await database.exec(
+      `UPDATE crm_role SET in_rotation = 0 WHERE user_id <> 'jit'`,
+    );
+    expect(await dealLeads(2, "adm")).toEqual(["jit", "jit"]);
+  });
+
+  it("gives a manager in the rotation leads, and they still see their reports' deals", async () => {
+    await seedVistarTeam();
+    const owners = await dealLeads(6, "mgr");
+    expect(owners).toContain("bhu");
+    const access = await resolveAccess({
+      userId: "bhu",
+      organizationId: A,
+      role: "member",
+    });
+    const seen = await runWithAccess(access, async () =>
+      (
+        await database.db
+          .select({ ownerId: deal.ownerId })
+          .from(deal)
+          .where(and(eq(deal.organizationId, A), dealAccessCondition()))
+      ).map((row) => row.ownerId),
+    );
+    expect(new Set(seen)).toEqual(new Set(["bhu", "rag", "anj", "pra"]));
+  });
+
+  it("gives a seller who hasn't signed in their lead through their placeholder", async () => {
+    await seedVistarTeam();
+    await database.exec(
+      `UPDATE crm_role SET in_rotation = 0 WHERE user_id <> 'hs:org_a:1:owners:1'`,
+    );
+    expect(await dealLeads(1, "ph")).toEqual(["hs:org_a:1:owners:1"]);
+  });
+
+  it("leaves out only members marked as left", async () => {
+    await seedVistarTeam();
+    // Pratik has no verified email and still takes his turn; Gus left.
+    const owners = await dealLeads(12, "left");
+    expect(owners).toContain("pra");
+    expect(owners).not.toContain("gone");
+  });
+
+  it("with nobody in the rotation, never deals to a member taken out of it", async () => {
+    await seedVistarTeam();
+    await database.exec(
+      `UPDATE crm_role SET in_rotation = 0 WHERE user_id <> 'audit'; UPDATE crm_role SET role = 'manager' WHERE role = 'seller'`,
+    );
+    const owners = await dealLeads(6, "none");
+    expect(owners).not.toContain("audit");
+    expect(owners).not.toContain("hs:org_a:1:system:unassigned-owner");
   });
 
   it("escalates an uncalled lead once at 24 hours, and never a called one", async () => {

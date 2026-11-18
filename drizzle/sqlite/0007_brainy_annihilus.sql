@@ -1,0 +1,1 @@
+ALTER TABLE `crm_role` ADD `in_rotation` integer;

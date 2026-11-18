@@ -366,3 +366,39 @@ describe("ImportService pipelines", () => {
     ).toEqual([{ stage: "CLOSED_WON", at: "Renewed" }]);
   });
 });
+
+describe("ImportService pipeline stage names", () => {
+  beforeEach(async () => {
+    await database.exec(
+      `DELETE FROM field_value; DELETE FROM activity; DELETE FROM deal; DELETE FROM pipeline_stage; DELETE FROM pipeline; DELETE FROM contact; DELETE FROM company; DELETE FROM workspace; DELETE FROM crm_role; DELETE FROM member; DELETE FROM organization; DELETE FROM "user";`,
+    );
+    await database.seedTwoOrganizations();
+  });
+
+  it("moves a deal onto a named stage whose name has a double space", async () => {
+    await ImportService.importChunk(
+      A,
+      chunk([
+        deal("Spaced", "Sales Pipeline", "MQL"),
+        deal("Other", "Sales Pipeline", "Initial Meeting /  Demo"),
+      ]),
+    );
+    const [row] = await database.rows(
+      "SELECT id FROM deal WHERE name = 'Spaced'",
+    );
+    const id = row?.id;
+    if (typeof id !== "string") throw new Error("Imported deal missing");
+    await DealService.setStage(
+      A.organizationId,
+      { id, stage: "DEMO_BOOKED" },
+      A.userId,
+    );
+    expect(
+      await database.rows(
+        "SELECT d.stage, s.name AS at FROM deal d LEFT JOIN pipeline_stage s ON s.id = d.pipeline_stage_id WHERE d.id = '" +
+          id +
+          "'",
+      ),
+    ).toEqual([{ stage: "DEMO_BOOKED", at: "Initial Meeting /  Demo" }]);
+  });
+});
