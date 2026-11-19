@@ -215,6 +215,27 @@ describe("DashboardService", () => {
     });
   });
 
+  it("leaves activity on an archived company, contact or deal out of recent activity", async () => {
+    await deal("live");
+    await deal("gone", { archived: true });
+    await database.exec(`
+        INSERT INTO company (id, organization_id, name, archived_at) VALUES ('test-co', 'org_a', 'Rotation Test Co', '2026-11-18T07:38:11.000Z');
+        INSERT INTO contact (id, organization_id, first_name, archived_at) VALUES ('test-person', 'org_a', 'Test', '2026-11-18T07:38:11.000Z');
+        INSERT INTO activity (id, organization_id, type, subject, company_id, contact_id, deal_id, created_by_id, created_at) VALUES
+          ('kept', 'org_a', 'NOTE', 'Live deal', 'acme', NULL, 'live', 'user_a', '2026-10-01T00:00:00.000Z'),
+          ('on-deal', 'org_a', 'CALL', 'Archived deal', 'acme', NULL, 'gone', 'user_a', '2026-10-02T00:00:00.000Z'),
+          ('on-company', 'org_a', 'TASK', 'Call Rotation Test Co', 'test-co', NULL, NULL, 'user_a', '2026-10-03T00:00:00.000Z'),
+          ('on-contact', 'org_a', 'NOTE', 'Archived contact', NULL, 'test-person', NULL, 'user_a', '2026-10-04T00:00:00.000Z');
+      `);
+
+    const summary = await DashboardService.summary(
+      "org_a",
+      "user_a",
+      "everyone",
+    );
+    expect(summary.recentActivity.map((entry) => entry.id)).toEqual(["kept"]);
+  });
+
   it("lists won deals renewing in the next 90 days whose renewal isn't open yet, and nothing of another organization", async () => {
     await database.exec(`
         INSERT INTO company (id, organization_id, name) VALUES
