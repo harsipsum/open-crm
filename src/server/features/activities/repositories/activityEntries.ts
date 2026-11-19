@@ -109,6 +109,14 @@ export function selectEntries(where: SQL | undefined) {
     .where(and(where, visibleActivity(), activityAccessCondition()));
 }
 
+/**
+ * Not filed on an archived company, contact or deal. Home's lists use it, so an
+ * archived record leaves Recent activity and the follow-ups due with it.
+ */
+export function onLiveRecords() {
+  return sql`(${company.archivedAt} is null and ${contact.archivedAt} is null and ${deal.archivedAt} is null)`;
+}
+
 /** Archived imported notes remain preserved without entering live timelines. */
 export function visibleActivity() {
   return sql`coalesce(json_extract(${activity.meta}, '$.archived'), 0) != 1`;

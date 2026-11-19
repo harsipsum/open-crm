@@ -55,7 +55,7 @@ export function ApiSettings() {
               <CopyButton
                 value={mcpUrl}
                 successMessage="Copied."
-                label="Copy the MCP endpoint"
+                label="Copy the address"
                 size="icon-xs"
                 variant="ghost"
               />
@@ -64,8 +64,8 @@ export function ApiSettings() {
         </SettingsRow>
         <SettingsRow
           stacked
-          label="Claude Code"
-          description="Run this in a terminal, then type /mcp, choose visos and Authenticate."
+          label="From a terminal"
+          description="Run this command in a terminal, then type /mcp, choose visos and Authenticate."
         >
           {claudeCodeCommand ? (
             <div className="flex max-w-full items-center gap-2">
@@ -75,7 +75,7 @@ export function ApiSettings() {
               <CopyButton
                 value={claudeCodeCommand}
                 successMessage="Copied."
-                label="Copy the Claude Code command"
+                label="Copy the terminal command"
                 size="icon-xs"
                 variant="ghost"
               />

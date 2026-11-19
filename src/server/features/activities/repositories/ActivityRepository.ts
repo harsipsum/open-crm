@@ -21,6 +21,7 @@ import {
   taskAccessCondition,
 } from "@/server/features/access/access";
 import {
+  onLiveRecords,
   selectEntries,
   timelineAt,
   toEntry,
@@ -208,7 +209,10 @@ async function openTasks(
   return rows.map(toEntry);
 }
 
-/** The newest activities written, only `createdById`'s when given. */
+/**
+ * The newest activities written, only `createdById`'s when given, leaving out
+ * those filed on an archived record.
+ */
 async function recent(
   organizationId: string,
   input: { createdById: string | null; limit: number },
@@ -216,6 +220,7 @@ async function recent(
   const rows = await selectEntries(
     and(
       eq(activity.organizationId, organizationId),
+      onLiveRecords(),
       input.createdById
         ? eq(activity.createdById, input.createdById)
         : undefined,
