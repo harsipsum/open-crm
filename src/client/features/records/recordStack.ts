@@ -79,7 +79,8 @@ function parseRef(raw: string): RecordRef | null {
   return kind && id ? { kind, id } : null;
 }
 
-function parseStack(raw: string | undefined): RecordRef[] {
+/** The open sheets in the URL's `record`, bottom first. */
+export function parseStack(raw: string | undefined): RecordRef[] {
   if (!raw) return [];
   return raw.split(",").flatMap((part) => {
     const ref = parseRef(part.trim());
