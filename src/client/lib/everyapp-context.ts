@@ -114,6 +114,26 @@ export function createContextPublisher(options: {
   };
   window.addEventListener("message", onMessage);
 
+  // Keys pressed in this page never reach the framing page, so its two shortcuts are passed up:
+  // Ctrl/Cmd+K (its app launcher) and Ctrl/Cmd+J (its docked chat), as
+  // { type: "everyapp:shortcut", version: 1, key: "k" | "j" }, to the same exact origin.
+  const onKey = (event: KeyboardEvent) => {
+    if (
+      event.isComposing ||
+      event.altKey ||
+      event.shiftKey ||
+      !(event.metaKey || event.ctrlKey)
+    )
+      return;
+    const key = event.key.toLowerCase();
+    if (key !== "k" && key !== "j") return;
+    const origin = requestOrigin ?? parentOrigin();
+    if (!origin || !parents.includes(origin)) return;
+    event.preventDefault();
+    parent.postMessage({ type: "everyapp:shortcut", version: 1, key }, origin);
+  };
+  window.addEventListener("keydown", onKey, true);
+
   return {
     publish(snapshot) {
       if (disposed) return;
@@ -129,6 +149,7 @@ export function createContextPublisher(options: {
       disposed = true;
       clearTimeout(timer);
       window.removeEventListener("message", onMessage);
+      window.removeEventListener("keydown", onKey, true);
     },
   };
 }

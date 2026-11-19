@@ -185,4 +185,40 @@ describe("the agent context publisher", () => {
       filters: {},
     });
   });
+
+  it("passes Ctrl/Cmd+K and Ctrl/Cmd+J up to the allowed parent, and no other key", () => {
+    const frame = framed();
+    createContextPublisher({ app: "crm" });
+    let prevented = 0;
+    const press = (key: string, mods: Record<string, boolean>) =>
+      frame.receive({
+        key,
+        ...mods,
+        preventDefault: () => prevented++,
+      } as never);
+    press("k", { metaKey: true });
+    press("j", { ctrlKey: true });
+    press("k", {});
+    press("x", { ctrlKey: true });
+    press("k", { ctrlKey: true, shiftKey: true });
+    expect(frame.posts).toEqual([
+      {
+        message: { type: "everyapp:shortcut", version: 1, key: "k" },
+        origin: MAUSBOT,
+      },
+      {
+        message: { type: "everyapp:shortcut", version: 1, key: "j" },
+        origin: MAUSBOT,
+      },
+    ]);
+    expect(prevented).toBe(2);
+    const outside = framed({ ancestors: ["https://evil.example"] });
+    createContextPublisher({ app: "crm" });
+    outside.receive({
+      key: "k",
+      metaKey: true,
+      preventDefault: () => {},
+    } as never);
+    expect(outside.posts).toEqual([]);
+  });
 });
