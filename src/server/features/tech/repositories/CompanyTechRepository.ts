@@ -120,10 +120,51 @@ async function archive(organizationId: string, id: string, userId: string) {
   return row ?? null;
 }
 
+/**
+ * Restores an archived line; null when it is not archived, or when the
+ * company lists the product again on a live line (the live-product index).
+ */
+async function restore(organizationId: string, id: string) {
+  const [line] = await db
+    .select({
+      companyId: companyTech.companyId,
+      productKey: companyTech.productKey,
+    })
+    .from(companyTech)
+    .where(inOrganization(organizationId, id))
+    .limit(1);
+  if (!line) return null;
+  const [live] = await db
+    .select({ id: companyTech.id })
+    .from(companyTech)
+    .where(
+      and(
+        eq(companyTech.organizationId, organizationId),
+        eq(companyTech.companyId, line.companyId),
+        eq(companyTech.productKey, line.productKey),
+        isNull(companyTech.archivedAt),
+      ),
+    )
+    .limit(1);
+  if (live) return null;
+  const [row] = await db
+    .update(companyTech)
+    .set({ archivedAt: null, archivedById: null })
+    .where(
+      and(
+        inOrganization(organizationId, id),
+        sql`${companyTech.archivedAt} is not null`,
+      ),
+    )
+    .returning({ id: companyTech.id });
+  return row ?? null;
+}
+
 export const CompanyTechRepository = {
   listForCompany,
   findById,
   insert,
   confirm,
   archive,
+  restore,
 };

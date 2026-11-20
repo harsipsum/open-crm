@@ -17,6 +17,18 @@ async function requireCompany(organizationId: string, companyId: string) {
   return found;
 }
 
+/** The company, when its stack may change: an archived company's may not. */
+async function requireOpenCompany(organizationId: string, companyId: string) {
+  const found = await requireCompany(organizationId, companyId);
+  if (found.archivedAt) {
+    throw new UserFacingError(
+      "CONFLICT",
+      "This company is archived. Restore it to change its tech stack.",
+    );
+  }
+  return found;
+}
+
 type Row = Awaited<
   ReturnType<typeof CompanyTechRepository.listForCompany>
 >[number];
@@ -51,13 +63,7 @@ async function add(
   userId: string,
   input: AddCompanyTechInput,
 ) {
-  const found = await requireCompany(organizationId, input.companyId);
-  if (found.archivedAt) {
-    throw new UserFacingError(
-      "CONFLICT",
-      "This company is archived. Restore it to change its tech stack.",
-    );
-  }
+  await requireOpenCompany(organizationId, input.companyId);
   const product = input.product.trim().replace(/\s+/g, " ");
   const team = input.origin === "team";
   const now = new Date().toISOString();
@@ -89,6 +95,7 @@ async function confirm(organizationId: string, userId: string, id: string) {
   if (!line || line.archivedAt) {
     throw new AppError("NOT_FOUND", `No tech line with id ${id}.`);
   }
+  await requireOpenCompany(organizationId, line.companyId);
   await CompanyTechRepository.confirm(organizationId, id, userId);
   const confirmed = await CompanyTechRepository.findById(organizationId, id);
   if (!confirmed) throw new Error("Tech line missing after confirm");
@@ -100,8 +107,28 @@ async function archive(organizationId: string, userId: string, id: string) {
   if (!line || line.archivedAt) {
     throw new AppError("NOT_FOUND", `No tech line with id ${id}.`);
   }
+  await requireOpenCompany(organizationId, line.companyId);
   await CompanyTechRepository.archive(organizationId, id, userId);
   return { id, product: line.product, companyId: line.companyId };
 }
 
-export const CompanyTechService = { list, add, confirm, archive };
+/** Brings an archived line back, as it was: the undo for archive. */
+async function restore(organizationId: string, id: string) {
+  const line = await CompanyTechRepository.findById(organizationId, id);
+  if (!line || !line.archivedAt) {
+    throw new AppError("NOT_FOUND", `No archived tech line with id ${id}.`);
+  }
+  await requireOpenCompany(organizationId, line.companyId);
+  const restored = await CompanyTechRepository.restore(organizationId, id);
+  if (!restored) {
+    throw new UserFacingError(
+      "CONFLICT",
+      `${line.product} is listed again already, so the archived line stays archived.`,
+    );
+  }
+  const back = await CompanyTechRepository.findById(organizationId, id);
+  if (!back) throw new Error("Tech line missing after restore");
+  return shown(back);
+}
+
+export const CompanyTechService = { list, add, confirm, archive, restore };

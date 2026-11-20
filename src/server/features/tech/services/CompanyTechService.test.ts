@@ -72,6 +72,64 @@ describe("CompanyTechService", () => {
     ).resolves.toMatchObject({ created: true, verified: true });
   });
 
+  it("leaves an archived company's stack as it is", async () => {
+    const acme = await CompanyService.createCompany(A, { name: "Acme" });
+    const line = await CompanyTechService.add(A, "user_a", {
+      companyId: acme.id,
+      product: "SAP Business One",
+      origin: "public",
+      source: "https://example.test/case-study",
+    });
+    await CompanyService.archiveCompany(A, acme.id);
+
+    await expect(
+      CompanyTechService.confirm(A, "user_a", line.id),
+    ).rejects.toThrow(/archived/);
+    await expect(
+      CompanyTechService.archive(A, "user_a", line.id),
+    ).rejects.toThrow(/archived/);
+    await CompanyService.restoreCompany(A, acme.id);
+    expect(await CompanyTechService.list(A, acme.id)).toMatchObject([
+      { id: line.id, verified: false },
+    ]);
+  });
+
+  it("restores an archived line as it was, unless the product is listed again", async () => {
+    const acme = await CompanyService.createCompany(A, { name: "Acme" });
+    const line = await CompanyTechService.add(A, "user_a", {
+      companyId: acme.id,
+      product: "Freshservice",
+      origin: "public",
+      source: "https://example.test/stack",
+    });
+    await CompanyTechService.archive(A, "user_a", line.id);
+    expect(await CompanyTechService.list(A, acme.id)).toHaveLength(0);
+
+    const back = await CompanyTechService.restore(A, line.id);
+    expect(back).toMatchObject({
+      id: line.id,
+      origin: "public",
+      verified: false,
+    });
+    expect(await CompanyTechService.list(A, acme.id)).toHaveLength(1);
+    await expect(CompanyTechService.restore(A, line.id)).rejects.toThrow(
+      /No archived tech line/,
+    );
+
+    await CompanyTechService.archive(A, "user_a", line.id);
+    await CompanyTechService.add(A, "user_a", {
+      companyId: acme.id,
+      product: "Freshservice",
+      origin: "team",
+    });
+    await expect(CompanyTechService.restore(A, line.id)).rejects.toThrow(
+      /listed again/,
+    );
+    await expect(CompanyTechService.restore(B, line.id)).rejects.toThrow(
+      /No archived tech line/,
+    );
+  });
+
   it("keeps each organization's stacks to itself", async () => {
     const acme = await CompanyService.createCompany(A, { name: "Acme" });
     const line = await CompanyTechService.add(A, "user_a", {

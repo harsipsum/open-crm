@@ -26,6 +26,7 @@ import type { CompanyTechLine } from "@/server/features/tech/services/CompanyTec
 import {
   addCompanyTech,
   archiveCompanyTech,
+  restoreCompanyTech,
   confirmCompanyTech,
   listCompanyTech,
 } from "@/serverFunctions/companyTech";
@@ -88,7 +89,19 @@ function useTechMutations(companyId: string) {
     archive: useMutation({
       mutationFn: (id: string) => archiveCompanyTech({ data: { id } }),
       onSuccess: async (line) => {
-        toast.success(`${line.product} archived.`);
+        toast.success(`${line.product} archived.`, {
+          action: {
+            label: "Undo",
+            onClick: () => {
+              restoreCompanyTech({ data: { id: line.id } })
+                .then(async () => {
+                  toast.success(`${line.product} is back.`);
+                  await refresh();
+                })
+                .catch(onError);
+            },
+          },
+        });
         await refresh();
       },
       onError,
