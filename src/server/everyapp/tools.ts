@@ -3,6 +3,7 @@ import { namedTools } from "@/server/everyapp/crm-tool";
 import { activityTools } from "@/server/everyapp/tools/activities";
 import { bulkTools } from "@/server/everyapp/tools/bulk";
 import { companyTools } from "@/server/everyapp/tools/companies";
+import { companyTechTools } from "@/server/everyapp/tools/companyTech";
 import { contactTools } from "@/server/everyapp/tools/contacts";
 import { dashboardTools } from "@/server/everyapp/tools/dashboard";
 import { dealTools } from "@/server/everyapp/tools/deals";
@@ -34,6 +35,7 @@ const tools = {
   ...workspaceTools,
   ...searchTools,
   ...companyTools,
+  ...companyTechTools,
   ...contactTools,
   ...listTools,
   ...dealTools,
