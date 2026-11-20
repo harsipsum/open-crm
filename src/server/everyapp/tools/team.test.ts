@@ -150,6 +150,36 @@ describe("team and audit tools", () => {
     ).toContain("isn't in this workspace");
   });
 
+  it("refuses a leaver mark sent with a role or manager change, and changes nothing", async () => {
+    // cy is a CRM admin from the tests above and a plain Gateway member, so
+    // marking themself left is refused; the role in the same call must not
+    // stick either.
+    const before = await crmOf(ana, cy.sub);
+    expect(before).toMatchObject({ role: "admin" });
+    expect(
+      await failure(
+        "update_member",
+        { userId: cy.sub, role: "seller", left: true },
+        { as: cy },
+      ),
+    ).toContain("in a call of its own");
+    expect(
+      await failure(
+        "update_member",
+        { userId: cy.sub, managerId: null, left: false },
+        { as: cy },
+      ),
+    ).toContain("in a call of its own");
+    expect(
+      await failure(
+        "update_member",
+        { userId: cy.sub, left: true },
+        { as: cy },
+      ),
+    ).toBe("Another admin marks you as left.");
+    expect(await crmOf(ana, cy.sub)).toEqual(before);
+  });
+
   it("the audit log names who called each tool; a read-only connection reads it; another organization sees none of it", async () => {
     const { rows } = audit.parse(
       await call("list_audit_log", {}, { ...readOnly, as: cy }),

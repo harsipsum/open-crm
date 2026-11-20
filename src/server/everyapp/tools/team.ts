@@ -16,6 +16,8 @@ import { CRM_ROLES } from "@/shared/crm-roles";
 // gateway's 100 tools an app, so the team's read is part of list_members.
 
 const NOT_ADMIN = "Only a CRM admin can do that.";
+const LEFT_ALONE =
+  "Mark someone left or back in a call of its own, without role or managerId.";
 
 /**
  * Throws FORBIDDEN unless the caller is a CRM admin: requireCrmAdmin, the
@@ -67,7 +69,7 @@ const AUDIT_PAGE = 100;
 export const teamTools = {
   update_member: crmTool({
     description:
-      "Change a member's CRM role, their manager (a manager or admin, or null), or mark them as left (their records fall into the shared pool at once) or back. Only what is given changes. Star OS owners and admins stay CRM admins. Handing a leaver's deals and contacts to one person is done on the CRM's Members screen. CRM admins only; list_members shows each member's CRM role to them.",
+      "Change a member's CRM role, their manager (a manager or admin, or null), or mark them as left (their records fall into the shared pool at once) or back. Only what is given changes; marking someone left or back is a call of its own. Star OS owners and admins stay CRM admins. Handing a leaver's deals and contacts to one person is done on the CRM's Members screen. CRM admins only; list_members shows each member's CRM role to them.",
     risk: "write",
     input: z
       .object({
@@ -86,6 +88,15 @@ export const teamTools = {
     handler: async ({ userId, role, managerId, left }, context) => {
       requireAdminCaller();
       const { organizationId } = context;
+      // A role change and a leaver mark are separate writes that each check
+      // on their own, so one call takes one kind: a refused leaver mark must
+      // not leave a role change behind it.
+      if (
+        left !== undefined &&
+        (role !== undefined || managerId !== undefined)
+      ) {
+        throw new UserFacingError("VALIDATION_ERROR", LEFT_ALONE);
+      }
       if (role !== undefined || managerId !== undefined) {
         const current = (await TeamService.getTeam(organizationId)).find(
           (row) => row.userId === userId,
