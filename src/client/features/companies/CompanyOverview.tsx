@@ -1,4 +1,5 @@
 import { RecordListsSection } from "@/client/features/lists/RecordListsSection";
+import { CompanyTech } from "@/client/features/companies/CompanyTech";
 import { useState } from "react";
 import { Button } from "@/client/components/ui/button";
 import { ExternalLink } from "lucide-react";
@@ -43,6 +44,10 @@ export function CompanyOverview({
   return (
     <div>
       <RecordListsSection entity="COMPANY" recordId={company.id} />
+      <CompanyTech
+        companyId={company.id}
+        archived={company.archivedAt !== null}
+      />
       <SheetSection title={company.description ? "About" : undefined}>
         <InlineTextArea
           label="Description"

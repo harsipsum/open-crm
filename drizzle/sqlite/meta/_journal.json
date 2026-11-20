@@ -57,6 +57,13 @@
       "when": 1794985639196,
       "tag": "0007_brainy_annihilus",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1795192438610,
+      "tag": "0008_petite_doctor_strange",
+      "breakpoints": true
     }
   ]
 }
