@@ -165,7 +165,7 @@ describe("workspace tools", () => {
       ),
     ).toBe(OWNERS_ONLY);
     await call("add_tracked_domain", { host: "https://www.acme.test/" });
-    await call("set_tracking_paused", { paused: true });
+    await call("update_tracking_settings", { paused: true });
     await call("update_tracking_settings", {
       crossDomain: false,
       cookieSubdomains: true,

@@ -5,6 +5,7 @@ import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
 import { rolesOf, roleRank } from "@/client/features/members/memberRoles";
 import type { EnsuredUserContext } from "@/middleware/ensure-user/types";
 import { crmTool, pageInput, pageOf } from "@/server/everyapp/crm-tool";
+import { crmMemberOutput, crmTeamFor } from "@/server/everyapp/tools/team";
 import { CurrencyService } from "@/server/features/currency/services/CurrencyService";
 import { SettingsService } from "@/server/features/settings/services/SettingsService";
 import { WorkspaceService } from "@/server/features/workspace/services/WorkspaceService";
@@ -194,7 +195,7 @@ export const workspaceTools = {
 
   list_members: crmTool({
     description:
-      "The organization's members who have opened the CRM, with their roles: the people records can be owned by and tools take by email or id. `query` matches part of a name or email. 50 a page, oldest first unless sorted.",
+      "The organization's members who have opened the CRM, with their roles (and, for a CRM admin, each one's CRM role, manager and whether they left): the people records can be owned by and tools take by email or id. `query` matches part of a name or email. 50 a page, oldest first unless sorted.",
     risk: "read",
     input: z
       .object({
@@ -229,6 +230,11 @@ export const workspaceTools = {
           role: z.string(),
           joinedAt: z.string(),
           isCaller: z.boolean().describe("This member is the caller."),
+          crm: crmMemberOutput
+            .nullable()
+            .describe(
+              "Their CRM role, manager and leaver mark: for a CRM admin caller only, null otherwise.",
+            ),
         }),
       ),
     }),
@@ -245,6 +251,7 @@ export const workspaceTools = {
           (roles.length === 0 ||
             rolesOf(member).some((role) => roles.includes(role))),
       );
+      const crm = await crmTeamFor(context.organizationId);
       const { rows, ...rest } = pageOf(
         sortBy(found, [
           MEMBER_ORDER[input.sort ?? "joinedAt"],
@@ -259,6 +266,7 @@ export const workspaceTools = {
           ...row,
           id: row.userId,
           isCaller: row.userId === context.userId,
+          crm: crm?.get(row.userId) ?? null,
         })),
       };
     },

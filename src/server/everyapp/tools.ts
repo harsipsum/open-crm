@@ -13,6 +13,7 @@ import { listTools } from "@/server/everyapp/tools/lists";
 import { mailTools } from "@/server/everyapp/tools/mail";
 import { savedViewTools } from "@/server/everyapp/tools/savedViews";
 import { searchTools } from "@/server/everyapp/tools/search";
+import { teamTools } from "@/server/everyapp/tools/team";
 import { trackingTools } from "@/server/everyapp/tools/tracking";
 import { visTools } from "@/server/everyapp/tools/vis";
 import { workspaceTools } from "@/server/everyapp/tools/workspace";
@@ -33,6 +34,7 @@ const INSTRUCTIONS =
 // with crmTool() and adds its map here.
 const tools = {
   ...workspaceTools,
+  ...teamTools,
   ...searchTools,
   ...companyTools,
   ...companyTechTools,

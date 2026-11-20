@@ -181,29 +181,16 @@ export const trackingTools = {
     },
   }),
 
-  set_tracking_paused: crmTool({
-    description:
-      "Pause website tracking, or resume it with paused: false (owners and admins only). The script stops or starts recording within five minutes.",
-    risk: "write",
-    input: z.object({ paused: z.boolean() }).strict(),
-    output: settingsOutput,
-    handler: async ({ paused }, context, { origin }) => {
-      requireOrgPermission(context, manage);
-      await TrackingSettingsService.setFlag(
-        context.organizationId,
-        "paused",
-        paused,
-      );
-      return settings(context.organizationId, origin);
-    },
-  }),
-
   update_tracking_settings: crmTool({
     description:
-      "Change website tracking's rules and cookies (owners and admins only); only what is given changes. Browsers pick it up within five minutes. set_tracking_paused pauses tracking.",
+      "Change website tracking's rules and cookies, or pause it (owners and admins only); only what is given changes. paused: true stops recording, false starts it again. Browsers pick it up within five minutes.",
     risk: "write",
     input: z
       .object({
+        paused: z
+          .boolean()
+          .optional()
+          .describe("true pauses tracking, false resumes it."),
         crossDomain: switches.crossDomain.optional(),
         limitToDomains: switches.limitToDomains.optional(),
         cookieSubdomains: switches.cookieSubdomains.optional(),
@@ -225,6 +212,13 @@ export const trackingTools = {
           context.organizationId,
           flag,
           enabled,
+        );
+      }
+      if (input.paused !== undefined) {
+        await TrackingSettingsService.setFlag(
+          context.organizationId,
+          "paused",
+          input.paused,
         );
       }
       if (input.cookieDays !== undefined) {
