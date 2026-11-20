@@ -51,6 +51,15 @@ export const companyTechTools = {
     handler: ({ id }, context) =>
       CompanyTechService.confirm(context.organizationId, context.userId, id),
   }),
+  restore_company_tech: crmTool({
+    description:
+      "Bring back a tech line that was archived by mistake, as it was (origin, verified, source). It fails when the company lists that product again on another line.",
+    risk: "write",
+    input: z.object({ id: lineId }).strict(),
+    output: lineOutput,
+    handler: ({ id }, context) =>
+      CompanyTechService.restore(context.organizationId, id),
+  }),
   archive_company_tech: crmTool({
     description:
       "Archive a tech line the company no longer runs, or that was wrong. It leaves the stack but is kept.",

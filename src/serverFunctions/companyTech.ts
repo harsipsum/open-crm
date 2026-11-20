@@ -30,6 +30,13 @@ export const confirmCompanyTech = createServerFn({ method: "POST" })
     CompanyTechService.confirm(context.organizationId, context.userId, data.id),
   );
 
+export const restoreCompanyTech = createServerFn({ method: "POST" })
+  .middleware(requireAuthenticatedContext)
+  .validator(companyTechIdSchema)
+  .handler(({ data, context }) =>
+    CompanyTechService.restore(context.organizationId, data.id),
+  );
+
 export const archiveCompanyTech = createServerFn({ method: "POST" })
   .middleware(requireAuthenticatedContext)
   .validator(companyTechIdSchema)
