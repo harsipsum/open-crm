@@ -6,7 +6,7 @@ name: Star OS gate
 on:
   pull_request:
   push:
-    branches: ["HEAD"]
+    branches: ["main"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -30,13 +30,18 @@ jobs:
             [ -f "$f" ] || { echo "::error::frozen test missing: $f"; missing=1; }
           done < .github/frozen-tests.txt
           exit $missing
+      - name: pnpm on PATH
+        run: |
+          mkdir -p "$HOME/.local/staros-bin"
+          corepack enable --install-directory "$HOME/.local/staros-bin" pnpm
+          echo "$HOME/.local/staros-bin" >> "$GITHUB_PATH"
       - name: install
-        run: corepack pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
       - name: check:words
-        run: corepack pnpm check:words
+        run: pnpm check:words
       - name: types:check
-        run: corepack pnpm types:check
+        run: pnpm types:check
       - name: lint
-        run: corepack pnpm lint
+        run: pnpm lint
       - name: test
-        run: corepack pnpm test
+        run: pnpm test
