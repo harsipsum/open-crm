@@ -26,6 +26,7 @@ jobs:
         run: |
           missing=0
           while IFS= read -r f; do
+            f="${f%$'\r'}"
             case "$f" in ''|'#'*) continue;; esac
             [ -f "$f" ] || { echo "::error::frozen test missing: $f"; missing=1; }
           done < .github/frozen-tests.txt
@@ -33,7 +34,8 @@ jobs:
       - name: pnpm on PATH
         run: |
           mkdir -p "$HOME/.local/staros-bin"
-          corepack enable --install-directory "$HOME/.local/staros-bin" pnpm
+          # One shim for every runner on the VPS; enabling it again while another job does can hang.
+          [ -x "$HOME/.local/staros-bin/pnpm" ] || corepack enable --install-directory "$HOME/.local/staros-bin" pnpm
           echo "$HOME/.local/staros-bin" >> "$GITHUB_PATH"
       - name: install
         run: pnpm install --frozen-lockfile
