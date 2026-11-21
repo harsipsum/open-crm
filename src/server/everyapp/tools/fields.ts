@@ -33,7 +33,7 @@ const entityInput = fieldEntitySchema.describe(
 const recordIdInput = z
   .string()
   .min(1)
-  .max(64)
+  .max(128)
   .describe("The id of the company, contact or deal.");
 
 const fieldIdInput = fieldIdSchema

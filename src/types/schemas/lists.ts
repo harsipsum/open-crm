@@ -52,7 +52,7 @@ export const LIST_TEMPLATES = {
 } satisfies Record<string, StageTemplate[]>;
 export type ListTemplate = keyof typeof LIST_TEMPLATES;
 
-const id = z.string().min(1).max(64);
+const id = z.string().min(1).max(128);
 
 const name = z
   .string()

@@ -59,7 +59,7 @@ export function stageFilter(list: ListSummary, values: string[]): string[] {
 }
 
 export const listStagesInput = z
-  .array(z.string().trim().min(1).max(64))
+  .array(z.string().trim().min(1).max(128))
   .max(FACET_FILTER_MAX)
   .optional();
 
@@ -68,7 +68,7 @@ export const listFilterInput = {
   list: z
     .string()
     .min(1)
-    .max(64)
+    .max(128)
     .optional()
     .describe("Only records in this list, by id (list_lists)."),
   listStages: listStagesInput.describe(
@@ -152,7 +152,7 @@ export async function recordLists(
 /** The records a tool takes: by id, contacts by email, companies by domain. */
 export const recordsInput = {
   ids: z
-    .array(z.string().min(1).max(64))
+    .array(z.string().min(1).max(128))
     .max(LIST_IDS_MAX)
     .optional()
     .describe(

@@ -42,7 +42,7 @@ import { NO_STAGE } from "@/types/schemas/records";
 const listId = z
   .string()
   .min(1)
-  .max(64)
+  .max(128)
   .describe("The list's id, from list_lists.");
 
 const stageOutput = z.object({
@@ -78,7 +78,7 @@ const stageInput = z
   .string()
   .trim()
   .min(1)
-  .max(64)
+  .max(128)
   .describe("A stage of the list, by id or name (any case).");
 
 export const listTools = {
