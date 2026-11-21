@@ -5,13 +5,16 @@ import { crmTool, fullName } from "@/server/everyapp/crm-tool";
 import { TrackingSettingsService } from "@/server/features/tracking/services/TrackingSettingsService";
 import { WebsiteActivityService } from "@/server/features/tracking/services/WebsiteActivityService";
 import { COOKIE_LIFETIMES, DOMAIN_SCOPES } from "@/shared/tracking";
-import { addTrackedDomainSchema } from "@/types/schemas/tracking";
+import {
+  addTrackedDomainSchema,
+  verifyTrackingSchema,
+} from "@/types/schemas/tracking";
 
 // Website tracking for AI clients: what a company's or contact's browsers did
 // on the website, the tracking settings and traffic sources, and the settings
 // page's switches for owners and admins (pause, the rules, the cookies, the
-// allowed domains). Verify installation and the site id's rotation stay with
-// people.
+// allowed domains) and its Verify installation. The site id's rotation stays
+// with people: it breaks the snippet already on the website.
 
 const touchOutput = z
   .object({
@@ -253,6 +256,50 @@ export const trackingTools = {
         scope: scope ?? "SITE_AND_SUBDOMAINS",
       });
       return settings(context.organizationId, origin);
+    },
+  }),
+
+  get_tracking_install_check: crmTool({
+    description:
+      "Check that a page of the website carries the tracking snippet, as Verify installation does on the settings page (owners and admins only): found (in the page or its Google Tag Manager container, with whether its host is allowed and whether a page view arrived from it lately), missing, or unreachable. It reads the page and changes nothing.",
+    risk: "read",
+    input: z
+      .object({
+        url: verifyTrackingSchema.shape.url.describe(
+          "An https page of the website, like https://acme.com/.",
+        ),
+      })
+      .strict(),
+    output: z
+      .object({
+        status: z.enum(["found", "missing", "unreachable"]),
+        host: z.string(),
+        allowed: z
+          .boolean()
+          .optional()
+          .describe("Found: the host is on the allowed list."),
+        pageView: z
+          .boolean()
+          .optional()
+          .describe("Found: a page view arrived from this host lately."),
+        container: z
+          .object({ id: z.string(), carriesSiteId: z.boolean() })
+          .nullable()
+          .optional()
+          .describe("Found through Tag Manager: the container that holds it."),
+        containers: z
+          .array(z.string())
+          .optional()
+          .describe("Missing: the Tag Manager containers the page loads."),
+        detail: z
+          .string()
+          .optional()
+          .describe("Unreachable: why the page could not be read."),
+      })
+      .passthrough(),
+    handler: async ({ url }, context) => {
+      requireOrgPermission(context, manage);
+      return TrackingSettingsService.verify(context.organizationId, url);
     },
   }),
 

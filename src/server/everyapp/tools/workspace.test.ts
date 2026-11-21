@@ -199,5 +199,12 @@ describe("workspace tools", () => {
     expect(await failure("get_traffic_sources", {}, { as: member })).toBe(
       OWNERS_ONLY,
     );
+    expect(
+      await failure(
+        "get_tracking_install_check",
+        { url: "https://www.acme.test/" },
+        { as: member },
+      ),
+    ).toBe(OWNERS_ONLY);
   });
 });
