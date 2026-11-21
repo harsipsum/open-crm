@@ -320,7 +320,7 @@ export const dealTools = {
       DealService.createDeal(context.organizationId, {
         ...input,
         ownerId: email
-          ? await memberId(context.organizationId, email)
+          ? await memberId(context.organizationId, email, { forWrite: true })
           : context.userId,
         fields:
           fields &&
@@ -347,7 +347,7 @@ export const dealTools = {
       DealService.updateDeal(context.organizationId, {
         ...input,
         ownerId: email
-          ? await memberId(context.organizationId, email)
+          ? await memberId(context.organizationId, email, { forWrite: true })
           : undefined,
         fields:
           fields &&

@@ -133,6 +133,22 @@ export function isImportPlaceholder(m: { userId: string; email: string }) {
   return m.userId.includes(":system:") || m.email.endsWith("@import.invalid");
 }
 
+/**
+ * Whether `userId` is a person on the team: a member and not an import's
+ * placeholder. Writes take only people as owners and user field values.
+ */
+async function isPerson(organizationId: string, userId: string) {
+  const [row] = await db
+    .select({ userId: user.id, email: user.email })
+    .from(member)
+    .innerJoin(user, eq(user.id, member.userId))
+    .where(
+      and(eq(member.organizationId, organizationId), eq(member.userId, userId)),
+    )
+    .limit(1);
+  return Boolean(row) && !isImportPlaceholder(row);
+}
+
 /** listMembers without the import placeholders: the people on the team. */
 async function listPeople(organizationId: string) {
   return (await listMembers(organizationId)).filter(
@@ -147,5 +163,6 @@ export const AuthRepository = {
   listMembers,
   listPeople,
   isMember,
+  isPerson,
   getUsers,
 };

@@ -316,7 +316,9 @@ export const contactTools = {
     handler: async ({ ownerEmail: email, fields, ...input }, context) =>
       ContactService.createContact(context.organizationId, {
         ...input,
-        ownerId: email ? await memberId(context.organizationId, email) : null,
+        ownerId: email
+          ? await memberId(context.organizationId, email, { forWrite: true })
+          : null,
         fields:
           fields &&
           (await withMemberIds(context.organizationId, "CONTACT", fields)),
@@ -346,7 +348,10 @@ export const contactTools = {
         ownerId:
           email === undefined
             ? undefined
-            : email && (await memberId(context.organizationId, email)),
+            : email &&
+              (await memberId(context.organizationId, email, {
+                forWrite: true,
+              })),
         fields:
           fields &&
           (await withMemberIds(context.organizationId, "CONTACT", fields)),

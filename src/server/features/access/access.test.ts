@@ -245,6 +245,21 @@ describe("record scoping", () => {
     });
   });
 
+  it("refuses an import's placeholder as a record's owner", async () => {
+    // Neon round 4, 21 Nov 2026: writes (the UI, MCP create and bulk assign)
+    // could still give records to HubSpot's unassigned owner.
+    await database.exec(`
+      INSERT INTO "user" (id, name, email, email_verified, created_at, updated_at) VALUES
+        ('hs:p:1:system:unassigned-owner', 'Unassigned HubSpot owner', 'unassigned@import.invalid', 0, 0, 0);
+      INSERT INTO member (id, organization_id, user_id, role, created_at) VALUES
+        ('m_ph', 'org_a', 'hs:p:1:system:unassigned-owner', 'member', 0);
+    `);
+    await expect(
+      assertOwner(A, "hs:p:1:system:unassigned-owner"),
+    ).rejects.toThrow(/not on the team/);
+    await expect(assertOwner(A, "s1")).resolves.not.toThrow();
+  });
+
   it("refuses to let a seller give a record to someone else", async () => {
     const seller = await resolveAccess({
       userId: "s1",

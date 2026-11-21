@@ -128,7 +128,9 @@ export const bulkTools = {
       const ownerId =
         input.ownerEmail === null
           ? null
-          : await memberId(context.organizationId, input.ownerEmail);
+          : await memberId(context.organizationId, input.ownerEmail, {
+              forWrite: true,
+            });
       switch (input.kind) {
         case "company":
           return CompanyService.bulkAssignOwner(

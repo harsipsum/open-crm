@@ -314,7 +314,7 @@ export const companyTools = {
       CompanyService.createCompany(context.organizationId, {
         ...input,
         ownerId: email
-          ? await memberId(context.organizationId, email)
+          ? await memberId(context.organizationId, email, { forWrite: true })
           : context.userId,
         fields:
           fields &&
@@ -344,7 +344,10 @@ export const companyTools = {
         ownerId:
           email === undefined
             ? undefined
-            : email && (await memberId(context.organizationId, email)),
+            : email &&
+              (await memberId(context.organizationId, email, {
+                forWrite: true,
+              })),
         fields:
           fields &&
           (await withMemberIds(context.organizationId, "COMPANY", fields)),

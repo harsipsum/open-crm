@@ -121,10 +121,18 @@ export function crmTool<
 
 /**
  * A member's user id from their email or their id, as the tools take people:
- * list_members gives both, and a saved view keeps its owners by id.
+ * list_members gives both, and a saved view keeps its owners by id. A filter
+ * may name an import's placeholder (it owns records); a write may not
+ * (`forWrite`), since only people own records.
  */
-export async function memberId(organizationId: string, person: string) {
-  const members = await AuthRepository.listMembers(organizationId);
+export async function memberId(
+  organizationId: string,
+  person: string,
+  { forWrite = false }: { forWrite?: boolean } = {},
+) {
+  const members = forWrite
+    ? await AuthRepository.listPeople(organizationId)
+    : await AuthRepository.listMembers(organizationId);
   const wanted = person.trim();
   const member = members.find(
     (candidate) =>
