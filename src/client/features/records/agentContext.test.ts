@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { crmAgentContext } from "@/client/features/records/agentContext";
+import {
+  crmAgentContext,
+  crmAppKey,
+} from "@/client/features/records/agentContext";
+
+describe("crmAppKey", () => {
+  it("is the hostname's first label, so a staging copy names itself", () => {
+    expect(crmAppKey("crm.apps.ralveto.com")).toBe("crm");
+    expect(crmAppKey("crmlab.apps.ralveto.com")).toBe("crmlab");
+    expect(crmAppKey("localhost")).toBe("crm");
+    expect(crmAppKey("127.0.0.1")).toBe("crm");
+    expect(crmAppKey("bad_label.apps.ralveto.com")).toBe("crm");
+  });
+});
 
 describe("what the CRM tells the page framing it", () => {
   it("names the record on top of the sheets and, on /deals, the list's filters but not its search text", () => {
