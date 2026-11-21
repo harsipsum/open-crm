@@ -80,7 +80,7 @@ async function noteAuthor(
 ): Promise<string | null> {
   const found = await ContactRepository.findById(organizationId, contactId);
   if (found?.ownerId) return found.ownerId;
-  const [first] = await AuthRepository.listMembers(organizationId);
+  const [first] = await AuthRepository.listPeople(organizationId);
   return first?.userId ?? null;
 }
 
