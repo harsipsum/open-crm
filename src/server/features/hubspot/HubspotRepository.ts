@@ -107,7 +107,8 @@ async function writeObjects(org: string, input: HubspotBatch) {
       const value = {
         id,
         organizationId: org,
-        name: text(p.name) ?? `HubSpot company ${row.id}`,
+        // A company HubSpot holds with no name reads as its domain, never as an id.
+        name: text(p.name) ?? domain ?? `HubSpot company ${row.id}`,
         domain: sql<
           string | null
         >`case when exists(select 1 from company where organization_id = ${org} and domain = ${domain} and archived_at is null and id <> ${id}) then null else ${domain} end`,

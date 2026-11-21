@@ -54,9 +54,9 @@ describe("the MCP catalog", () => {
         "set_archive_retention",
       ]),
     );
-    // The gateway serves at most 100 tools an app, and drops a tool whose
-    // input or output schema is over 20 KiB.
-    expect(tools.length).toBeLessThanOrEqual(100);
+    // The gateway has no count of tools an app (toolbus catalog.ts, 21 Nov
+    // 2026: a long list gets the compact listing); it drops a tool whose
+    // input or output schema is over 20 KiB, checked below.
     for (const tool of tools) {
       expect(tool.outputSchema, tool.name).toMatchObject({ type: "object" });
       for (const schema of [tool.inputSchema, tool.outputSchema]) {
