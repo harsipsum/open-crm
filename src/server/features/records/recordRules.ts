@@ -43,10 +43,10 @@ export async function assertOwner(
       "Sellers own what they take. A manager or admin gives records to someone else.",
     );
   }
-  if (!(await AuthRepository.isMember(organizationId, ownerId))) {
+  if (!(await AuthRepository.isPerson(organizationId, ownerId))) {
     throw new UserFacingError(
       "VALIDATION_ERROR",
-      "That owner does not work here any more.",
+      "That owner is not on the team: pick someone who works here, or leave it unassigned.",
     );
   }
 }

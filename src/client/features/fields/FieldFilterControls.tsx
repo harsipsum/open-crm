@@ -108,10 +108,17 @@ export function useFieldFilters(
                     value: option.id,
                     label: option.label,
                   }))
-                : (members ?? []).map((member) => ({
-                    value: member.userId,
-                    label: member.name,
-                  })),
+                : (members ?? [])
+                    .filter(
+                      (member) =>
+                        !member.placeholder ||
+                        (filter?.op === "anyOf" &&
+                          filter.values.includes(member.userId)),
+                    )
+                    .map((member) => ({
+                      value: member.userId,
+                      label: member.name,
+                    })),
             value: filter?.op === "anyOf" ? filter.values : [],
             counts: countsFor(facetCounts, `field:${field.key}`),
             max: ANY_OF_MAX,

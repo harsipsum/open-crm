@@ -109,7 +109,7 @@ async function checkValues(
     if (
       definition.type === "USER" &&
       typeof parsed.value === "string" &&
-      !(await AuthRepository.isMember(organizationId, parsed.value))
+      !(await AuthRepository.isPerson(organizationId, parsed.value))
     ) {
       throw new UserFacingError(
         "VALIDATION_ERROR",

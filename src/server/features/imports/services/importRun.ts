@@ -1,4 +1,7 @@
-import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
+import {
+  AuthRepository,
+  isImportPlaceholder,
+} from "@/server/auth/repositories/AuthRepository";
 import { currentAccess } from "@/server/features/access/access";
 import { CompanyRepository } from "@/server/features/companies/repositories/CompanyRepository";
 import {
@@ -200,7 +203,9 @@ function findMember(run: Pick<ImportRun, "members">, raw: string | null) {
   if (!found) {
     throw new RowError(`Nobody in this workspace is called "${raw}".`);
   }
-  return found;
+  // An exported file names an import's placeholder for what it owns: that
+  // is nobody, so the row comes in unassigned.
+  return isImportPlaceholder(found) ? null : found;
 }
 
 /** The owner a cell names; a seller can only name themselves. */

@@ -8,6 +8,7 @@ import { useAppForm } from "@/client/components/form/useAppForm";
 import { Button } from "@/client/components/ui/button";
 import { contactErrorMessage } from "@/client/features/contacts/useContactMutations";
 import { parseAmount } from "@/client/features/deals/dealFormat";
+import { membersQueryOptions } from "@/client/features/members/memberQueries";
 import { useInvalidateRecords } from "@/client/features/records/recordQueries";
 import { workspaceQueryOptions } from "@/client/features/workspace/workspaceQueries";
 import { canAssignOthers } from "@/shared/crm-roles";
@@ -81,11 +82,18 @@ export function QuickAddContact({
 }) {
   const invalidate = useInvalidateRecords();
   const { data: workspace } = useQuery(workspaceQueryOptions());
-  // A seller keeps the people they add; a manager or admin follows the company.
+  // A seller keeps the people they add; a manager or admin follows the
+  // company, unless an import's placeholder owns it: then nobody does.
+  const { data: members } = useQuery(membersQueryOptions());
+  const placeholderOwned = (members ?? []).some(
+    (member) => member.placeholder && member.userId === company.ownerId,
+  );
   const ownerId =
     workspace && !canAssignOthers(workspace.crmRole)
       ? workspace.userId
-      : company.ownerId;
+      : placeholderOwned
+        ? null
+        : company.ownerId;
   const create = useMutation({
     mutationFn: (values: z.infer<typeof contactSchema>) =>
       createContact({
