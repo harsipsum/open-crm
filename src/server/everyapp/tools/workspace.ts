@@ -242,7 +242,7 @@ export const workspaceTools = {
       const needle = input.query?.toLowerCase() ?? "";
       const roles: readonly string[] = input.roles ?? [];
       const found = (
-        await AuthRepository.listMembers(context.organizationId)
+        await AuthRepository.listPeople(context.organizationId)
       ).filter(
         (member) =>
           (!needle ||

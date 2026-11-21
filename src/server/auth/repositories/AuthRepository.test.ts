@@ -9,7 +9,24 @@ vi.mock("cloudflare:workers", () => ({ env: {} }));
 vi.mock("@/db", () => ({ db: database.db }));
 vi.mock("@/db/runBatch", () => database.runBatchModule);
 
-import { AuthRepository } from "./AuthRepository";
+import { AuthRepository, isImportPlaceholder } from "./AuthRepository";
+
+describe("isImportPlaceholder", () => {
+  it("is an import's owner account, never a person", () => {
+    expect(
+      isImportPlaceholder({
+        userId: "hs:org:9344866:system:unassigned-owner",
+        email: "org.9344866.unassigned@import.invalid",
+      }),
+    ).toBe(true);
+    expect(
+      isImportPlaceholder({ userId: "hs:org:77", email: "77@import.invalid" }),
+    ).toBe(true);
+    expect(
+      isImportPlaceholder({ userId: "user_a", email: "a@vistar.me" }),
+    ).toBe(false);
+  });
+});
 
 describe("AuthRepository.listMembers", () => {
   beforeEach(async () => {
