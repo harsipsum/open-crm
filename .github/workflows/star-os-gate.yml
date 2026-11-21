@@ -1,0 +1,47 @@
+name: Star OS gate
+# The one check every change to a Star OS app passes before it merges or deploys (21 Nov 2026). It runs on the
+# self-hosted Star OS runners on t3-vps (no Actions minutes). Branch protection requires the "gate" job, and the deploy
+# wrapper (HarsOS projects/vistar/runner/deploy.cjs) refuses a commit whose gate is not green. A pull request from a
+# fork never reaches the VPS: it is sent to a hosted runner, which this account has no minutes for, so it stays blocked.
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: star-os-gate-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  gate:
+    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) && 'ubuntu-latest' || fromJSON('["self-hosted","staros-vps"]') }}
+    timeout-minutes: 40
+    env:
+      CI: "1"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Frozen tests are all present
+        run: |
+          missing=0
+          while IFS= read -r f; do
+            case "$f" in ''|'#'*) continue;; esac
+            [ -f "$f" ] || { echo "::error::frozen test missing: $f"; missing=1; }
+          done < .github/frozen-tests.txt
+          exit $missing
+      - name: pnpm on PATH
+        run: |
+          mkdir -p "$HOME/.local/staros-bin"
+          corepack enable --install-directory "$HOME/.local/staros-bin" pnpm
+          echo "$HOME/.local/staros-bin" >> "$GITHUB_PATH"
+      - name: install
+        run: pnpm install --frozen-lockfile
+      - name: check:words
+        run: pnpm check:words
+      - name: types:check
+        run: pnpm types:check
+      - name: lint
+        run: pnpm lint
+      - name: test
+        run: pnpm test
