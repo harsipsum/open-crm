@@ -73,7 +73,10 @@ export function SalesTeamSettings() {
     onError: (error) => toast.error(error.message),
   });
 
-  const rows = team.data ?? [];
+  // The importer's placeholder for HubSpot records with no owner is not a
+  // person on the team: it holds records, nobody manages it.
+  const everyone = team.data ?? [];
+  const rows = everyone.filter((row) => !isSystemOwner(row));
   const managers = rows.filter((row) => row.role !== "seller" && !row.leftAt);
 
   return (
@@ -129,6 +132,7 @@ export function SalesTeamSettings() {
                 <ManagerSelect
                   row={row}
                   managers={managers}
+                  everyone={everyone}
                   disabled={role.isPending}
                   onChange={(managerId) =>
                     role.mutate({
@@ -175,14 +179,19 @@ export function SalesTeamSettings() {
   );
 }
 
+const isSystemOwner = (row: TeamRow) =>
+  row.userId.includes(":system:") || row.email.endsWith("@import.invalid");
+
 function ManagerSelect({
   row,
   managers,
+  everyone,
   disabled,
   onChange,
 }: {
   row: TeamRow;
   managers: TeamRow[];
+  everyone: TeamRow[];
   disabled: boolean;
   onChange: (managerId: string | null) => void;
 }) {
@@ -193,6 +202,15 @@ function ManagerSelect({
       label: manager.name,
     })),
   ];
+  // A manager who is no longer a manager (or has left) still shows by name,
+  // never as an id, until someone picks another.
+  if (row.managerId && !items.some((item) => item.value === row.managerId)) {
+    const current = everyone.find((member) => member.userId === row.managerId);
+    items.push({
+      value: row.managerId,
+      label: current ? `${current.name} (not a manager)` : "Former manager",
+    });
+  }
   return (
     <Select
       items={items}

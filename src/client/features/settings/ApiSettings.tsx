@@ -1,4 +1,5 @@
 import { BRAND } from "@/shared/brand";
+import { serverSlug } from "@/shared/server-slug";
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import {
@@ -32,8 +33,11 @@ export function ApiSettings() {
   const mcpUrl = account?.gatewayUrl
     ? `${account.gatewayUrl}/mcp`
     : origin && `${origin}/mcp`;
+  // The server's name in Claude Code: one word, so the command pastes as is
+  // ("Star OS" becomes star-os).
+  const serverName = serverSlug(BRAND.suiteName ?? "everyapp");
   const claudeCodeCommand = mcpUrl
-    ? `claude mcp add --transport http ${(BRAND.suiteName ?? "everyapp").toLowerCase()} ${mcpUrl}`
+    ? `claude mcp add --transport http ${serverName} ${mcpUrl}`
     : null;
 
   return (
@@ -65,7 +69,7 @@ export function ApiSettings() {
         <SettingsRow
           stacked
           label="From a terminal"
-          description="Run this command in a terminal, then type /mcp, choose visos and Authenticate."
+          description={`Run this command in a terminal, then type /mcp, choose ${serverName} and Authenticate.`}
         >
           {claudeCodeCommand ? (
             <div className="flex max-w-full items-center gap-2">
