@@ -6,7 +6,7 @@ name: Star OS gate
 on:
   pull_request:
   push:
-    branches: ["main"]
+    branches: ["HEAD"]
   workflow_dispatch:
 permissions:
   contents: read
