@@ -168,16 +168,19 @@ export function StageBreakdown({
     <div className="flex flex-1 flex-col gap-4">
       {/* The list below says what each share is. */}
       <div aria-hidden className="flex h-3 gap-0.5">
-        {stages.map((slice) => (
-          <div
-            key={slice.stage}
-            className={cn(
-              "h-full min-w-1 basis-0 first:rounded-l-[4px] last:rounded-r-[4px]",
-              STAGE_FILL[slice.stage],
-            )}
-            style={{ flexGrow: slice.value }}
-          />
-        ))}
+        {/* A stage with no value gets no slice: min-w-1 drew it as a 4px sliver. */}
+        {stages
+          .filter((slice) => slice.value > 0)
+          .map((slice) => (
+            <div
+              key={slice.stage}
+              className={cn(
+                "h-full min-w-1 basis-0 first:rounded-l-[4px] last:rounded-r-[4px]",
+                STAGE_FILL[slice.stage],
+              )}
+              style={{ flexGrow: slice.value }}
+            />
+          ))}
       </div>
       <ul className="flex flex-col text-xs">
         {stages.map((stage) => (

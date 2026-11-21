@@ -134,9 +134,11 @@ export function SalesSummary({ summary }: { summary: DashboardSummary }) {
           ) : null}
           {performance.winRate !== null ? (
             <StatTile
-              label={`Win rate (${performance.windowDays}d)`}
+              // Deals that go quiet are rarely marked lost, so this is the
+              // share of closed deals that were won, not a win rate.
+              label={`Won of closed (${performance.windowDays}d)`}
               value={formatPercent(performance.winRate)}
-              description={`${performance.wins} won, ${performance.losses} lost`}
+              description={`${performance.wins} won, ${performance.losses} marked lost; open deals that went quiet are not counted`}
             />
           ) : null}
           {performance.averageDeal !== null ? (
