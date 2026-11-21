@@ -124,11 +124,28 @@ async function getUsers(userIds: string[]) {
     .where(inArray(user.id, userIds));
 }
 
+/**
+ * An account an import made to own records (HubSpot's unassigned owner, or a
+ * HubSpot owner with no Star OS account): it owns records but is no person
+ * on the team.
+ */
+export function isImportPlaceholder(m: { userId: string; email: string }) {
+  return m.userId.includes(":system:") || m.email.endsWith("@import.invalid");
+}
+
+/** listMembers without the import placeholders: the people on the team. */
+async function listPeople(organizationId: string) {
+  return (await listMembers(organizationId)).filter(
+    (m) => !isImportPlaceholder(m),
+  );
+}
+
 export const AuthRepository = {
   ensureOrganization,
   upsertMember,
   startUnseenClocks,
   listMembers,
+  listPeople,
   isMember,
   getUsers,
 };

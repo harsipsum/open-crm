@@ -208,7 +208,9 @@ function ManagerSelect({
     const current = everyone.find((member) => member.userId === row.managerId);
     items.push({
       value: row.managerId,
-      label: current ? `${current.name} (not a manager)` : "Former manager",
+      label: current
+        ? `${current.name} (${current.leftAt ? "left" : "not a manager"})`
+        : "Former manager",
     });
   }
   return (

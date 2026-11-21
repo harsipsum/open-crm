@@ -13,8 +13,7 @@
 export default {
   id: "viscrm",
   name: "Star CRM",
-  description:
-    "Companies, contacts and deals, with mail, meetings and website visits filed on them.",
+  description: "Companies, contacts and deals in one place.",
   icon: "/viscrm-icon.svg",
   resources: {
     d1: ["DB"],

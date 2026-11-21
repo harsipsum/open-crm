@@ -32,7 +32,7 @@ interface TeamRow {
 
 async function getTeam(organizationId: string): Promise<TeamRow[]> {
   const [members, team] = await Promise.all([
-    AuthRepository.listMembers(organizationId),
+    AuthRepository.listPeople(organizationId),
     loadTeam(organizationId),
   ]);
   return members.map((m) => {
