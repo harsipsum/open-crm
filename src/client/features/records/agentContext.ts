@@ -24,6 +24,20 @@ export const CRM_CONTEXT_FILTERS = [
   "archived",
 ] as const;
 
+/**
+ * The app's key as the gateway knows it: the first label of its hostname
+ * (`crm.apps.example.com` is "crm", a staging copy at
+ * `crmlab.apps.example.com` is "crmlab"), so the framing page hears the app
+ * it opened. Anything else, a local dev host included, is "crm".
+ */
+export function crmAppKey(hostname: string): string {
+  const labels = hostname.toLowerCase().split(".");
+  const first = labels[0] ?? "";
+  return labels.length >= 3 && /^[a-z][a-z0-9-]{0,63}$/.test(first)
+    ? first
+    : "crm";
+}
+
 /** What is open, from the router's location. */
 export function crmAgentContext(location: {
   pathname: string;

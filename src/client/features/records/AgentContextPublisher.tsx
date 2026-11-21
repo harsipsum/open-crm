@@ -3,6 +3,7 @@ import { useLocation } from "@tanstack/react-router";
 import {
   CRM_CONTEXT_FILTERS,
   crmAgentContext,
+  crmAppKey,
 } from "@/client/features/records/agentContext";
 import {
   createContextPublisher,
@@ -22,7 +23,7 @@ export function AgentContextPublisher() {
 
   useEffect(() => {
     const created = createContextPublisher({
-      app: "crm",
+      app: crmAppKey(window.location.hostname),
       filterKeys: CRM_CONTEXT_FILTERS,
     });
     publisher.current = created;
