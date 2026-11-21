@@ -8,7 +8,7 @@ import {
 
 export const fieldEntitySchema = z.enum(FIELD_ENTITIES);
 
-const id = z.string().min(1).max(64);
+const id = z.string().min(1).max(128);
 
 export const listFieldsSchema = z.object({
   entity: fieldEntitySchema,

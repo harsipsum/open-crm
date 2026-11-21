@@ -21,8 +21,8 @@ export const importChunkSchema = z
     duplicates: z.enum(IMPORT_DUPLICATES),
     dryRun: z.boolean().default(false),
     rows: z.array(importRowSchema).min(1).max(IMPORT_CHUNK_SIZE),
-    listId: z.string().min(1).max(64).optional(),
-    stageId: z.string().min(1).max(64).nullable().optional(),
+    listId: z.string().min(1).max(128).optional(),
+    stageId: z.string().min(1).max(128).nullable().optional(),
   })
   .refine((input) => !input.listId || input.entity !== "DEAL", {
     message: "Deals can't be added to a list.",

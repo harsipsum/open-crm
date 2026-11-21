@@ -61,7 +61,7 @@ export const NO_STAGE = "none";
  * entries at none), and only the entries that are Due.
  */
 export const listMembershipFilters = {
-  list: z.string().min(1).max(64).optional(),
+  list: z.string().min(1).max(128).optional(),
   listStage: facetFilterSchema,
   due: z.boolean().default(false),
 };

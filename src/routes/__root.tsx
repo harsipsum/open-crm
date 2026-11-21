@@ -72,7 +72,12 @@ export const Route = createRootRoute({
         href: "/favicon-96x96.png",
       },
       { rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
-      { rel: "manifest", href: "/site.webmanifest" },
+      // Behind Star OS sign-in: without credentials the manifest fetch is a 401 in the console.
+      {
+        rel: "manifest",
+        href: "/site.webmanifest",
+        crossOrigin: "use-credentials",
+      },
     ],
     // The install's brand pack colours (src/shared/brand.ts).
     styles: [{ children: brandCss() }],
