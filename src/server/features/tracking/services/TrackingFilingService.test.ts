@@ -98,8 +98,12 @@ describe("TrackingFilingService", () => {
       },
     ]);
     expect(await submissions()).toMatchObject([{ skip_reason: null }]);
-    // Sensitive fields never reach storage.
-    expect(JSON.stringify(await submissions())).not.toMatch(
+    // Sensitive fields never reach storage. The generated contact id is left
+    // out: a random id holding "737" or "1120" failed this on main.
+    const stored = (await submissions()).map(
+      ({ contact_id: _id, ...row }: Record<string, unknown>) => row,
+    );
+    expect(JSON.stringify(stored)).not.toMatch(
       /hunter2|4111|737|1990|3456789|1120/,
     );
     expect(
