@@ -195,10 +195,12 @@ function ChoiceValue({
 
 function MemberValue(props: EditorProps) {
   const { data: members } = useQuery(membersQueryOptions());
-  const choices = (members ?? []).map((member) => ({
-    value: member.userId,
-    label: member.name,
-  }));
+  const choices = (members ?? [])
+    .filter((member) => !member.placeholder || member.userId === props.value)
+    .map((member) => ({
+      value: member.userId,
+      label: member.name,
+    }));
   if (
     typeof props.value === "string" &&
     !choices.some((choice) => choice.value === props.value)

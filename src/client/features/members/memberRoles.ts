@@ -3,7 +3,7 @@ import { MEMBER_ROLES, type MemberRole } from "@/types/schemas/members";
 
 // A member's roles as the gateway sends them, possibly several comma-joined.
 
-type Member = Awaited<ReturnType<typeof listMembers>>[number];
+type Member = Pick<Awaited<ReturnType<typeof listMembers>>[number], "role">;
 
 export function rolesOf(member: Member): string[] {
   return member.role

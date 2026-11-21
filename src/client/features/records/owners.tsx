@@ -23,10 +23,12 @@ export function useOwnerOptions(noneLabel = "Unassigned"): OwnerOption[] {
   const members = useQuery(membersQueryOptions());
   return [
     { value: UNASSIGNED, label: noneLabel },
-    ...(members.data ?? []).map((member) => ({
-      value: member.userId,
-      label: member.name,
-    })),
+    ...(members.data ?? [])
+      .filter((member) => !member.placeholder)
+      .map((member) => ({
+        value: member.userId,
+        label: member.name,
+      })),
   ];
 }
 

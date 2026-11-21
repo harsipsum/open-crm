@@ -73,7 +73,7 @@ async function escalationOwner(
   organizationId: string,
   dealOwnerId: string | null,
 ) {
-  const members = await AuthRepository.listMembers(organizationId);
+  const members = await AuthRepository.listPeople(organizationId);
   const leads = members.filter(
     (member) => member.role === "owner" || member.role === "admin",
   );
