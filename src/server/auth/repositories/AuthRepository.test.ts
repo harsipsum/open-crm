@@ -23,7 +23,7 @@ describe("isImportPlaceholder", () => {
       isImportPlaceholder({ userId: "hs:org:77", email: "77@import.invalid" }),
     ).toBe(true);
     expect(
-      isImportPlaceholder({ userId: "user_a", email: "a@vistar.me" }),
+      isImportPlaceholder({ userId: "user_a", email: "a@example.com" }),
     ).toBe(false);
   });
 });

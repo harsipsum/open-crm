@@ -31,6 +31,17 @@ jobs:
             [ -f "$f" ] || { echo "::error::frozen test missing: $f"; missing=1; }
           done < .github/frozen-tests.txt
           exit $missing
+      - name: Client data
+        # Folded in from client-data.yml (22 Nov 2026): one workflow per change, not three.
+        run: node scripts/check-client-data.mjs
+      - name: Gitleaks current source tree (redacted)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          d="$RUNNER_TEMP/gitleaks"; mkdir -p "$d"
+          gh release download v8.30.0 --repo gitleaks/gitleaks --pattern 'gitleaks_8.30.0_linux_x64.tar.gz' --pattern 'gitleaks_8.30.0_checksums.txt' --dir "$d" --clobber
+          (cd "$d" && grep ' gitleaks_8.30.0_linux_x64.tar.gz$' gitleaks_8.30.0_checksums.txt | sha256sum -c - && tar -xzf gitleaks_8.30.0_linux_x64.tar.gz gitleaks)
+          "$d/gitleaks" dir . --redact=100 --no-banner
       - name: pnpm on PATH
         run: |
           mkdir -p "$HOME/.local/staros-bin"
